@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
@@ -70,7 +71,10 @@ function PotmCard({ match }: { match: Match }) {
   const displayName = isRTL ? getPlayerNameAr(best.name) : best.name;
 
   return (
-    <View style={potmStyles.card}>
+    <Pressable
+      style={({ pressed }) => [potmStyles.card, pressed && { opacity: 0.75 }]}
+      onPress={() => router.push({ pathname: '/player/[id]', params: { id: best.playerId, name: best.name } })}
+    >
       <Text style={[potmStyles.label, { textAlign }]}>{t('match.playerOfMatch')}</Text>
       <PlayerAvatar uri={best.photo} size={100} />
       <Text style={[potmStyles.name, { textAlign: 'center' }]} numberOfLines={2}>{displayName}</Text>
@@ -82,7 +86,7 @@ function PotmCard({ match }: { match: Match }) {
         ? <Text style={potmStyles.officialBadge}>{t('match.officialAward')}</Text>
         : <Text style={potmStyles.rating}>★ {best.rating.toFixed(1)}</Text>
       }
-    </View>
+    </Pressable>
   );
 }
 
