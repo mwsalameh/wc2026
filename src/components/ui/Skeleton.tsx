@@ -12,12 +12,14 @@ export function Skeleton({ width = '100%', height = 16, style }: SkeletonProps) 
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [opacity]);
 
   return (

@@ -6,10 +6,11 @@ import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme
 import { useRTL } from '@/hooks/useRTL';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { PlayersTab } from '@/components/statistics/PlayersTab';
+import { PotmTab } from '@/components/statistics/PotmTab';
 import { TeamsTab } from '@/components/statistics/TeamsTab';
 import { DisciplineTab } from '@/components/statistics/DisciplineTab';
 
-const TABS = ['players', 'teams', 'discipline'] as const;
+const TABS = ['players', 'potm', 'teams', 'discipline'] as const;
 type StatTab = typeof TABS[number];
 
 export default function StatisticsScreen() {
@@ -19,6 +20,7 @@ export default function StatisticsScreen() {
 
   const tabLabels: Record<StatTab, string> = {
     players: t('stats.players'),
+    potm: t('stats.potmTab'),
     teams: t('stats.teams'),
     discipline: t('stats.discipline'),
   };
@@ -46,6 +48,7 @@ export default function StatisticsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
         {activeTab === 'players' && <PlayersTab />}
+        {activeTab === 'potm' && <PotmTab />}
         {activeTab === 'teams' && <TeamsTab />}
         {activeTab === 'discipline' && <DisciplineTab />}
       </ScrollView>

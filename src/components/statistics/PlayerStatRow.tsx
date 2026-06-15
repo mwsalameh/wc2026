@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
 import { useTeamName } from '@/hooks/useTeamName';
@@ -7,6 +8,8 @@ import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 
 interface Props {
   rank: number;
+  playerId?: number;
+  teamId?: number;
   name: string;
   photo: string;
   teamName: string;
@@ -23,13 +26,17 @@ const RANK_COLORS: Record<number, string> = {
   3: '#CD7F32',
 };
 
-export function PlayerStatRow({ rank, name, photo, teamName, teamLogo, value, valueLabel, sub, valueColor }: Props) {
+export function PlayerStatRow({ rank, playerId, teamId, name, photo, teamName, teamLogo, value, valueLabel, sub, valueColor }: Props) {
   const { rowDir, isRTL, textAlign } = useRTL();
   const translatedTeam = useTeamName(teamName);
   const displayName = isRTL ? getPlayerNameAr(name) : name;
 
   return (
-    <View style={[styles.row, { flexDirection: rowDir }]}>
+    <Pressable
+      style={({ pressed }) => [styles.row, { flexDirection: rowDir }, pressed && playerId && styles.pressed]}
+      onPress={playerId ? () => router.push({ pathname: '/player/[id]', params: { id: playerId, name } }) : undefined}
+      disabled={!playerId}
+    >
       <Text style={[styles.rank, { color: RANK_COLORS[rank] ?? colors.textMuted }]}>{rank}</Text>
 
       <PlayerAvatar uri={photo} size={40} />
@@ -38,7 +45,14 @@ export function PlayerStatRow({ rank, name, photo, teamName, teamLogo, value, va
         <Text style={[styles.name, { textAlign }]} numberOfLines={1}>{displayName}</Text>
         <View style={[styles.teamRow, { flexDirection: rowDir }]}>
           {teamLogo ? (
-            <Image source={{ uri: teamLogo }} style={styles.teamLogo} resizeMode="contain" />
+            <Pressable
+              onPress={teamId ? (e) => { e.stopPropagation(); router.push(`/team/${teamId}` as any); } : undefined}
+              disabled={!teamId}
+              hitSlop={6}
+              style={({ pressed }) => [pressed && teamId && { opacity: 0.65 }]}
+            >
+              <Image source={{ uri: teamLogo }} style={styles.teamLogo} resizeMode="contain" />
+            </Pressable>
           ) : null}
           <Text style={[styles.teamName, { textAlign }]} numberOfLines={1}>{translatedTeam}</Text>
         </View>
@@ -49,7 +63,7 @@ export function PlayerStatRow({ rank, name, photo, teamName, teamLogo, value, va
         <Text style={[styles.value, valueColor ? { color: valueColor } : undefined]}>{value}</Text>
         <Text style={styles.valueLabel}>{valueLabel}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -61,6 +75,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.sm,
   },
+  pressed: { opacity: 0.65 },
   rank: {
     width: 22,
     fontFamily: fontFamily.bodySemiBold,

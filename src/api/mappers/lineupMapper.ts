@@ -14,6 +14,8 @@ function mapPlayer(raw: any): Player {
     position: raw.player?.pos ?? '',
     photo,
     grid: raw.player?.grid ?? undefined,
+    captain: false,
+    injured: false,
   };
 }
 

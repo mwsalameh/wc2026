@@ -1,38 +1,121 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchTopScorers, fetchTopAssists, fetchTopYellowCards, fetchTopRedCards } from '@/api/playerStats';
-import { mapPlayerStats } from '@/api/mappers/playerStatsMapper';
+import { useQueries } from '@tanstack/react-query';
+import { fetchFixturePlayers } from '@/api/fixtures';
 import { useAllFixtures } from '@/hooks/useFixtures';
 import { QUERY_KEYS, STALE_TIMES } from '@/config/queryClient';
-import type { TeamStat } from '@/types/playerStats';
+import type { PlayerStat, TeamStat } from '@/types/playerStats';
 
-export const useTopScorers = () =>
-  useQuery({
-    queryKey: QUERY_KEYS.topScorers,
-    queryFn: async () => mapPlayerStats(await fetchTopScorers()),
-    staleTime: STALE_TIMES.PLAYER_STATS,
+// ─── fixture/player aggregation ─────────────────────────────────────────────
+
+// Returns raw useQueries results for every completed match.
+// All four stat hooks call this, but TanStack Query deduplicates the actual
+// network requests — /fixtures/players is fetched once per match and shared.
+function useFixturePlayerResults() {
+  const { data: fixtures } = useAllFixtures();
+
+  const completedIds = useMemo(
+    () =>
+      (fixtures ?? [])
+        .filter((m) => ['FT', 'AET', 'PEN'].includes(m.status))
+        .map((m) => m.id),
+    [fixtures]
+  );
+
+  const results = useQueries({
+    queries: completedIds.map((id) => ({
+      queryKey: QUERY_KEYS.fixturePlayers(id),
+      queryFn: () => fetchFixturePlayers(id),
+      staleTime: STALE_TIMES.FIXTURE_PLAYERS,
+    })),
   });
 
-export const useTopAssists = () =>
-  useQuery({
-    queryKey: QUERY_KEYS.topAssists,
-    queryFn: async () => mapPlayerStats(await fetchTopAssists()),
-    staleTime: STALE_TIMES.PLAYER_STATS,
-  });
+  return { results, completedIds };
+}
 
-export const useTopYellowCards = () =>
-  useQuery({
-    queryKey: QUERY_KEYS.topYellowCards,
-    queryFn: async () => mapPlayerStats(await fetchTopYellowCards()),
-    staleTime: STALE_TIMES.PLAYER_STATS,
-  });
+// Aggregate per-match player statistics into cross-tournament totals.
+// Every player who appeared in any completed match is included — no API cutoff.
+function buildPlayerStats(results: any[], completedIds: number[]): PlayerStat[] {
+  if (completedIds.length === 0) return [];
 
-export const useTopRedCards = () =>
-  useQuery({
-    queryKey: QUERY_KEYS.topRedCards,
-    queryFn: async () => mapPlayerStats(await fetchTopRedCards()),
-    staleTime: STALE_TIMES.PLAYER_STATS,
-  });
+  const map = new Map<number, PlayerStat>();
+
+  for (const r of results) {
+    if (!r.data) continue;
+    for (const teamData of r.data) {
+      for (const p of teamData.players ?? []) {
+        const s = p.statistics?.[0];
+        if (!s) continue;
+
+        const goals: number = s.goals?.total ?? 0;
+        const assists: number = s.goals?.assists ?? 0;
+        const minutes: number = s.games?.minutes ?? 0;
+        const yellow: number = s.cards?.yellow ?? 0;
+        const red: number = s.cards?.red ?? 0;
+        const shots: number = s.shots?.on ?? 0;
+        const playerId: number = p.player.id;
+
+        const existing = map.get(playerId);
+        if (existing) {
+          existing.goals += goals;
+          existing.assists += assists;
+          existing.minutesPlayed += minutes;
+          if (minutes > 0) existing.appearances += 1;
+          existing.yellowCards += yellow;
+          existing.redCards += red;
+          existing.shotsOnTarget += shots;
+        } else {
+          map.set(playerId, {
+            playerId,
+            name: p.player.name ?? '',
+            photo: p.player.photo ?? '',
+            teamId: teamData.team.id,
+            teamName: teamData.team.name ?? '',
+            teamLogo: teamData.team.logo ?? '',
+            goals,
+            assists,
+            minutesPlayed: minutes,
+            appearances: minutes > 0 ? 1 : 0,
+            shotsOnTarget: shots,
+            yellowCards: yellow,
+            redCards: red,
+          });
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+// Shared hook — all four public stat hooks delegate here.
+// Returns undefined while the initial load is in progress (shows skeleton),
+// then the full aggregated list once any data arrives.
+function useAllPlayerStats(): { data: PlayerStat[] | undefined; isLoading: boolean } {
+  const { results, completedIds } = useFixturePlayerResults();
+
+  const data = useMemo(
+    () => buildPlayerStats(results, completedIds),
+    [results, completedIds]
+  );
+
+  const isLoading = completedIds.length > 0 && results.some((r) => r.isLoading);
+
+  // Stay undefined while loading with no data yet → components show skeleton.
+  // Once we have partial data or loading finishes, hand back the array.
+  const resolvedData = !isLoading || data.length > 0 ? data : undefined;
+
+  return { data: resolvedData, isLoading };
+}
+
+// ─── public stat hooks ───────────────────────────────────────────────────────
+// All return the same complete player list; components sort/filter as needed.
+
+export const useTopScorers = () => useAllPlayerStats();
+export const useTopAssists = () => useAllPlayerStats();
+export const useTopYellowCards = () => useAllPlayerStats();
+export const useTopRedCards = () => useAllPlayerStats();
+
+// ─── team stats (already fixture-derived, unchanged) ─────────────────────────
 
 export function useTeamStats(): { teams: TeamStat[]; isLoading: boolean } {
   const { data: fixtures, isLoading } = useAllFixtures();

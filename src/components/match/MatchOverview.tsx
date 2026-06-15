@@ -1,12 +1,14 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
 import { formatKickoffFull, getTimezoneAbbr } from '@/utils/dateTime';
 import { useLanguageStore } from '@/store/languageStore';
 import { useRTL } from '@/hooks/useRTL';
-import { getVenueNameAr, getCityNameAr } from '@/constants/venueNamesAr';
+import { getVenueNameAr, getCityNameAr, getVenueCountry } from '@/constants/venueNamesAr';
 import { getPlayerNameAr } from '@/constants/playerNamesAr';
+import { getRefereeInfo, getRefereeNationalityAr, getFlagEmoji, getCountryCodeFromName, getCountryNationalityAr } from '@/constants/refereeData';
 import type { Match, MatchEvent } from '@/types/match';
 
 // ─── Info row ─────────────────────────────────────────────────────────────────
@@ -20,7 +22,119 @@ function InfoRow({ label, value, isRTL }: { label: string; value: string; isRTL:
   );
 }
 
+// ─── Referee row ──────────────────────────────────────────────────────────────
+
+function RefereeRow({
+  referee,
+  isRTL,
+  isAr,
+}: {
+  referee: { name: string; country: string };
+  isRTL: boolean;
+  isAr: boolean;
+}) {
+  const { t } = useTranslation();
+  const info = getRefereeInfo(referee.name, referee.country);
+  const sep = isAr ? '، ' : ', ';
+
+  // When no Arabic name is available, wrap the Latin name in LTR embedding marks
+  // so it renders correctly inside an RTL string instead of appearing garbled.
+  const displayName = isAr
+    ? (info?.nameAr ?? `‪${referee.name}‬`)
+    : (info?.nameEn ?? referee.name);
+  const nationality = info
+    ? (isAr ? getRefereeNationalityAr(info) : info.nationality)
+    : (isAr ? getCountryNationalityAr(referee.country) : referee.country);
+  const flagCode = info?.countryCode ?? getCountryCodeFromName(referee.country);
+  const flag = flagCode ? getFlagEmoji(flagCode) : '';
+
+  if (__DEV__ && !info) {
+    console.warn('[refereeData] MISS — no entry for:', JSON.stringify(referee.name), 'country:', JSON.stringify(referee.country));
+  }
+
+  // Flag uses the same separator as other items so it anchors correctly in RTL
+  const value = [displayName, nationality, flag].filter(Boolean).join(sep);
+
+  return <InfoRow label={t('match.referee')} value={value} isRTL={isRTL} />;
+}
+
+// ─── Venue row ────────────────────────────────────────────────────────────────
+
+function VenueRow({ venue, isRTL, isAr }: { venue: { name: string; city: string }; isRTL: boolean; isAr: boolean }) {
+  const { t } = useTranslation();
+  const sep = isAr ? '، ' : ', ';
+
+  const venueName = (isAr ? getVenueNameAr(venue.name) : venue.name) || venue.name;
+  const cityName = venue.city ? (isAr ? getCityNameAr(venue.city) : venue.city) : '';
+  const hostCountry = getVenueCountry(venue.name, venue.city);
+  const countryName = hostCountry ? (isAr ? hostCountry.nameAr : hostCountry.name) : '';
+  const flag = hostCountry ? getFlagEmoji(hostCountry.code) : '';
+
+  const value = [venueName, cityName, countryName].filter(Boolean).join(sep) + (flag ? ` ${flag}` : '');
+
+  return <InfoRow label={t('match.venue')} value={value} isRTL={isRTL} />;
+}
+
+// ─── Timeline helpers ─────────────────────────────────────────────────────────
+
+function halfEndMinute(events: MatchEvent[], base: number): string {
+  const stoppage = events.filter(
+    (e) => e.minute === base && e.extraMinute != null && e.extraMinute > 0
+  );
+  if (stoppage.length === 0) return `${base}'`;
+  const maxExtra = Math.max(...stoppage.map((e) => e.extraMinute!));
+  return `${base}+${maxExtra}'`;
+}
+
+function TimelineDivider({ minute, label, score }: { minute: string; label: string; score: string }) {
+  const parts = [minute, label, score].filter(Boolean);
+  return (
+    <View style={styles.dividerRow}>
+      <View style={styles.dividerPill}>
+        <Text style={styles.dividerText}>{parts.join('  ·  ')}</Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Event row ────────────────────────────────────────────────────────────────
+
+function PlayerLink({
+  id,
+  rawName,
+  displayName,
+  style,
+  dim,
+}: {
+  id: number;
+  rawName: string;
+  displayName: string;
+  style?: object;
+  dim?: boolean;
+}) {
+  if (!id) {
+    return (
+      <Text style={[styles.eventPlayerName, dim && { color: colors.textMuted }, style]} numberOfLines={1}>
+        {displayName}
+      </Text>
+    );
+  }
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: '/player/[id]', params: { id, name: rawName } })}
+      hitSlop={6}
+    >
+      {({ pressed }) => (
+        <Text
+          style={[styles.eventPlayerName, dim && { color: colors.textMuted }, style, pressed && { opacity: 0.6 }]}
+          numberOfLines={1}
+        >
+          {displayName}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
 
 function EventIcon({ type, detail }: { type: string; detail: string }) {
   if (type === 'Goal') return <Text style={styles.eventEmoji}>⚽</Text>;
@@ -51,23 +165,24 @@ function EventRow({ event, isRTL, showAr }: { event: MatchEvent; isRTL: boolean;
 
   // ── Substitution row ──────────────────────────────────────────────────────
   if (isSubst) {
-    const playerIn = showAr ? getPlayerNameAr(event.playerName) : event.playerName;
-    const playerOut = event.assistName
+    // api-football: player = going OFF, assist = coming ON
+    const playerOut = showAr ? getPlayerNameAr(event.playerName) : event.playerName;
+    const playerIn = event.assistName
       ? (showAr ? getPlayerNameAr(event.assistName) : event.assistName)
       : '';
 
     const substContent = (
       <View style={styles.substBlock}>
-        <View style={styles.substLine}>
-          <Text style={styles.substArrowIn}>↑</Text>
-          <Text style={styles.eventPlayerName} numberOfLines={1}>{playerIn}</Text>
-        </View>
-        {playerOut ? (
+        {playerIn && event.assistId ? (
           <View style={styles.substLine}>
-            <Text style={styles.substArrowOut}>↓</Text>
-            <Text style={[styles.eventPlayerName, { color: colors.textMuted }]} numberOfLines={1}>{playerOut}</Text>
+            <Text style={styles.substArrowIn}>↑</Text>
+            <PlayerLink id={event.assistId} rawName={event.assistName!} displayName={playerIn} />
           </View>
         ) : null}
+        <View style={styles.substLine}>
+          <Text style={styles.substArrowOut}>↓</Text>
+          <PlayerLink id={event.playerId} rawName={event.playerName} displayName={playerOut} dim />
+        </View>
       </View>
     );
 
@@ -98,14 +213,34 @@ function EventRow({ event, isRTL, showAr }: { event: MatchEvent; isRTL: boolean;
     ? ` (${t('match.penalty')})`
     : '';
 
+  // Assist displayed for normal goals only (not own goals), when the API provided one
+  const showAssist = isGoal && !isOwnGoal && !!event.assistName;
+  const assistDisplayName = showAssist
+    ? (showAr ? (getPlayerNameAr(event.assistName!) || event.assistName!) : event.assistName!)
+    : null;
+
   const icon = <EventIcon type={event.type} detail={event.detail} />;
+
+  const nameBlock = (side: 'left' | 'right') => (
+    <View style={[styles.goalNameBlock, { alignItems: side === 'left' ? 'flex-end' : 'flex-start' }]}>
+      <PlayerLink id={event.playerId} rawName={event.playerName} displayName={playerName + suffix} />
+      {showAssist && assistDisplayName && (
+        <PlayerLink
+          id={event.assistId ?? 0}
+          rawName={event.assistName!}
+          displayName={assistDisplayName}
+          style={styles.assistName}
+        />
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.eventRow}>
       <View style={[styles.eventSide, { alignItems: 'flex-end' }]}>
         {goesLeft && (
           <View style={styles.eventLeftContent}>
-            <Text style={styles.eventPlayerName} numberOfLines={1}>{playerName}{suffix}</Text>
+            {nameBlock('left')}
             {icon}
           </View>
         )}
@@ -117,7 +252,7 @@ function EventRow({ event, isRTL, showAr }: { event: MatchEvent; isRTL: boolean;
         {!goesLeft && (
           <View style={styles.eventRightContent}>
             {icon}
-            <Text style={styles.eventPlayerName} numberOfLines={1}>{playerName}{suffix}</Text>
+            {nameBlock('right')}
           </View>
         )}
       </View>
@@ -127,8 +262,9 @@ function EventRow({ event, isRTL, showAr }: { event: MatchEvent; isRTL: boolean;
 
 // ─── Events section ───────────────────────────────────────────────────────────
 
-function EventsSection({ events, isRTL, showAr }: { events: MatchEvent[]; isRTL: boolean; showAr: boolean }) {
+function EventsSection({ match, isRTL, showAr }: { match: Match; isRTL: boolean; showAr: boolean }) {
   const { t } = useTranslation();
+  const { events = [], score, status } = match;
 
   const visible = events.filter(
     (e) =>
@@ -138,16 +274,87 @@ function EventsSection({ events, isRTL, showAr }: { events: MatchEvent[]; isRTL:
         (e.detail === 'Yellow Card' || e.detail === 'Red Card' || e.detail === 'Yellow Red Card'))
   );
 
-  if (visible.length === 0) return null;
+  // Gate hasHT on match state: the API may return { home:0, away:0 } as a
+  // placeholder from kick-off, so 0 !== null must not trigger the HT divider.
+  const isPostHalfTime =
+    status === 'HT' ||
+    status === 'FT' ||
+    status === 'AET' ||
+    status === 'PEN' ||
+    (status === 'LIVE' && (match.elapsed ?? 0) > 45);
+  const hasHT = score.homeHT !== null && score.awayHT !== null && isPostHalfTime;
+  const isFinal = status === 'FT' || status === 'AET' || status === 'PEN';
+
+  if (visible.length === 0 && !hasHT && !isFinal) {
+    if (status !== 'LIVE') return null;
+    return (
+      <View style={styles.card}>
+        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+          {t('match.events')}
+        </Text>
+        <Text style={[styles.inProgressText, { textAlign: isRTL ? 'right' : 'left' }]}>
+          {t('match.matchInProgress')}
+        </Text>
+      </View>
+    );
+  }
+
+  // Split by match period FIRST, then sort each period descending.
+  // A sub at 46' (base minute 46) must never mix with a 45+5' goal (base minute 45)
+  // in a flat sort, because 45+5 effective=50 > 46 effective=46 would push the sub
+  // below the HT divider when it belongs above it.
+  const sortDesc = (a: MatchEvent, b: MatchEvent) =>
+    (b.minute + (b.extraMinute ?? 0)) - (a.minute + (a.extraMinute ?? 0));
+
+  const firstHalf  = [...visible.filter(e => e.minute <= 45)].sort(sortDesc);
+  const secondHalf = [...visible.filter(e => e.minute > 45)].sort(sortDesc);
+
+  // Minutes for divider labels.
+  // For a live match at HT, match.extra = the announced first-half stoppage time.
+  const htMin =
+    status === 'HT' && match.extra != null && match.extra > 0
+      ? `45+${match.extra}'`
+      : match.firstHalfAddedTime
+      ? `45+${match.firstHalfAddedTime}'`
+      : halfEndMinute(events.filter(e => e.minute <= 45), 45);
+  const ftBase = status === 'AET' || status === 'PEN' ? 120 : 90;
+  const ftMin = halfEndMinute(events.filter(e => e.minute > 45 && e.minute <= ftBase), ftBase);
+
+  const htScore = hasHT ? `${score.homeHT} – ${score.awayHT}` : '';
+  const ftScore = `${score.home ?? 0} – ${score.away ?? 0}`;
+  const ftLabel =
+    status === 'AET' ? t('match.afterET') :
+    status === 'PEN' ? t('match.afterPens') :
+    t('match.fullTime');
+
+  // Build render list: FT → 2nd-half events → HT → 1st-half events
+  type Item =
+    | { kind: 'ft' }
+    | { kind: 'ht' }
+    | { kind: 'event'; event: MatchEvent; idx: number };
+  const items: Item[] = [];
+
+  if (isFinal) items.push({ kind: 'ft' });
+  secondHalf.forEach((e, idx) => items.push({ kind: 'event', event: e, idx }));
+  if (hasHT) items.push({ kind: 'ht' });
+  firstHalf.forEach((e, idx) => items.push({ kind: 'event', event: e, idx: idx + secondHalf.length }));
 
   return (
     <View style={styles.card}>
       <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
         {t('match.events')}
       </Text>
-      {visible.map((e, i) => (
-        <EventRow key={i} event={e} isRTL={isRTL} showAr={showAr} />
-      ))}
+      {items.map((item, i) => {
+        if (item.kind === 'ft') {
+          return <TimelineDivider key="ft" minute={ftMin} label={ftLabel} score={ftScore} />;
+        }
+        if (item.kind === 'ht') {
+          return <TimelineDivider key="ht" minute={htMin} label={t('match.halfTime')} score={htScore} />;
+        }
+        return (
+          <EventRow key={`evt-${item.idx}`} event={item.event} isRTL={isRTL} showAr={showAr} />
+        );
+      })}
     </View>
   );
 }
@@ -161,40 +368,22 @@ export function MatchOverview({ match }: { match: Match }) {
   const isAr = language === 'ar';
   const tzAbbr = getTimezoneAbbr();
   const kickoffLabel = `${formatKickoffFull(match.kickoffUtc, language)} (${tzAbbr})`;
-  const venueName = isAr ? getVenueNameAr(match.venue.name) : match.venue.name;
-  const venueCity = isAr ? getCityNameAr(match.venue.city) : match.venue.city;
-  const venueLabel = venueName ? `${venueName}، ${venueCity}` : venueCity;
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <InfoRow label={t('match.kickoff')} value={kickoffLabel} isRTL={isRTL} />
-        {venueLabel ? (
-          <InfoRow label={t('match.venue')} value={venueLabel} isRTL={isRTL} />
-        ) : null}
+        <VenueRow venue={match.venue} isRTL={isRTL} isAr={isAr} />
         {match.referee ? (
-          <InfoRow label={t('match.referee')} value={match.referee} isRTL={isRTL} />
+          <RefereeRow referee={match.referee} isRTL={isRTL} isAr={isAr} />
         ) : null}
       </View>
 
-      {(match.score.homeHT !== null || match.score.awayHT !== null) &&
-       (match.status === 'HT' ||
-        match.status === 'FT' ||
-        match.status === 'AET' ||
-        match.status === 'PEN' ||
-        (match.status === 'LIVE' && (match.elapsed ?? 0) > 45)) && (
-        <View style={styles.card}>
-          <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
-            {match.status === 'HT' ? t('match.halfTimeLive') : t('match.halfTime')}
-          </Text>
-          <Text style={styles.htScore}>
-            {match.score.homeHT ?? 0} – {match.score.awayHT ?? 0}
-          </Text>
-        </View>
-      )}
-
-      {(match.events?.length ?? 0) > 0 && (
-        <EventsSection events={match.events} isRTL={isRTL} showAr={isAr} />
+      {((match.events?.length ?? 0) > 0 ||
+        match.score.homeHT !== null ||
+        match.status === 'LIVE' ||
+        match.status === 'FT' || match.status === 'AET' || match.status === 'PEN') && (
+        <EventsSection match={match} isRTL={isRTL} showAr={isAr} />
       )}
 
       <View style={styles.card}>
@@ -254,11 +443,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     marginBottom: spacing.xs,
   },
-  htScore: {
+  dividerRow: {
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  dividerPill: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dividerText: {
     color: colors.textSecondary,
-    fontFamily: fontFamily.display,
-    fontSize: 32,
-    textAlign: 'center',
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    textAlign: 'center' as const,
   },
   broadcastHeader: {
     gap: spacing.xs,
@@ -281,6 +482,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
 
+  inProgressText: {
+    color: colors.textMuted,
+    fontFamily: fontFamily.bodyRegular,
+    fontSize: fontSize.small,
+    paddingVertical: spacing.xs,
+  },
+
   // ── Events ──
   eventRow: {
     flexDirection: 'row',
@@ -292,13 +500,13 @@ const styles = StyleSheet.create({
   },
   eventLeftContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 5,
     justifyContent: 'flex-end',
   },
   eventRightContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 5,
   },
   eventPlayerName: {
@@ -306,6 +514,13 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyRegular,
     fontSize: 12,
     flexShrink: 1,
+  },
+  goalNameBlock: {
+    gap: 2,
+  },
+  assistName: {
+    color: colors.textMuted,
+    fontSize: 11,
   },
   eventEmoji: {
     fontSize: 13,
@@ -345,7 +560,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
   },
   substArrowOut: {
-    color: colors.textMuted,
+    color: colors.live,
     fontSize: 12,
     fontFamily: fontFamily.bodyMedium,
   },

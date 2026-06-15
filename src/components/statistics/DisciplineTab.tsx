@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
-import { useTopYellowCards, useTopRedCards } from '@/hooks/usePlayerStats';
+import { useTopYellowCards } from '@/hooks/usePlayerStats';
 import { StatSection } from './StatSection';
 import { PlayerStatRow } from './PlayerStatRow';
 import { TeamStatRow } from './TeamStatRow';
@@ -35,24 +35,44 @@ function aggregateByTeam(players: PlayerStat[], cardKey: 'yellowCards' | 'redCar
 
 export function DisciplineTab() {
   const { t } = useTranslation();
-  const { data: yellowPlayers, isLoading: loadingYellow } = useTopYellowCards();
-  const { data: redPlayers, isLoading: loadingRed } = useTopRedCards();
+  const { data: allPlayers, isLoading } = useTopYellowCards();
 
-  const teamYellow = useMemo(() => (yellowPlayers ? aggregateByTeam(yellowPlayers, 'yellowCards') : []), [yellowPlayers]);
-  const teamRed = useMemo(() => (redPlayers ? aggregateByTeam(redPlayers, 'redCards') : []), [redPlayers]);
+  // Derive filtered lists from the shared all-players dataset
+  const topYellow = useMemo(
+    () =>
+      (allPlayers ?? [])
+        .filter((p) => p.yellowCards > 0)
+        .sort((a, b) => b.yellowCards - a.yellowCards)
+        .slice(0, 10),
+    [allPlayers]
+  );
+  const topRed = useMemo(
+    () =>
+      (allPlayers ?? [])
+        .filter((p) => p.redCards > 0)
+        .sort((a, b) => b.redCards - a.redCards)
+        .slice(0, 10),
+    [allPlayers]
+  );
+
+  // Team aggregation uses ALL players (comprehensive, no cutoff)
+  const teamYellow = useMemo(() => (allPlayers ? aggregateByTeam(allPlayers, 'yellowCards') : []), [allPlayers]);
+  const teamRed = useMemo(() => (allPlayers ? aggregateByTeam(allPlayers, 'redCards') : []), [allPlayers]);
 
   return (
     <View style={styles.container}>
       <StatSection title={t('stats.yellowCards')}>
-        {loadingYellow ? (
+        {isLoading ? (
           [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} height={64} style={styles.skeletonRow} />)
-        ) : !yellowPlayers?.length ? (
+        ) : !topYellow.length ? (
           <EmptyState message={t('stats.noData')} />
         ) : (
-          yellowPlayers.filter((p) => p.yellowCards > 0).slice(0, 10).map((p, i) => (
+          topYellow.map((p, i) => (
             <PlayerStatRow
               key={p.playerId}
               rank={i + 1}
+              playerId={p.playerId}
+              teamId={p.teamId}
               name={p.name}
               photo={p.photo}
               teamName={p.teamName}
@@ -70,6 +90,7 @@ export function DisciplineTab() {
             <TeamStatRow
               key={team.teamId}
               rank={i + 1}
+              teamId={team.teamId}
               teamName={team.teamName}
               teamLogo={team.teamLogo}
               value={team.count}
@@ -81,15 +102,17 @@ export function DisciplineTab() {
       )}
 
       <StatSection title={t('stats.redCards')}>
-        {loadingRed ? (
+        {isLoading ? (
           [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} height={64} style={styles.skeletonRow} />)
-        ) : !redPlayers?.length ? (
+        ) : !topRed.length ? (
           <EmptyState message={t('stats.noData')} />
         ) : (
-          redPlayers.filter((p) => p.redCards > 0).slice(0, 10).map((p, i) => (
+          topRed.map((p, i) => (
             <PlayerStatRow
               key={p.playerId}
               rank={i + 1}
+              playerId={p.playerId}
+              teamId={p.teamId}
               name={p.name}
               photo={p.photo}
               teamName={p.teamName}
@@ -108,6 +131,7 @@ export function DisciplineTab() {
             <TeamStatRow
               key={team.teamId}
               rank={i + 1}
+              teamId={team.teamId}
               teamName={team.teamName}
               teamLogo={team.teamLogo}
               value={team.count}

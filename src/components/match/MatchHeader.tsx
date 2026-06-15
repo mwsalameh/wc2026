@@ -1,25 +1,39 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
+import { colors, fontFamily, fontSize, radius, spacing } from '@/constants/theme';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useRTL } from '@/hooks/useRTL';
 import { useTeamNavigation } from '@/hooks/useTeamNavigation';
 import { matchClockLabel } from '@/utils/matchClock';
-import type { Match } from '@/types/match';
+import { isFavoriteTeam } from '@/constants/favoriteTeam';
+import type { Match, TournamentRound } from '@/types/match';
+
+const ROUND_KEY: Record<TournamentRound, string> = {
+  'Group Stage':    'bracket.groupStage',
+  'Round of 32':   'bracket.roundOf32',
+  'Round of 16':   'bracket.roundOf16',
+  'Quarter-Finals':'bracket.quarterFinals',
+  'Semi-Finals':   'bracket.semiFinals',
+  'Third Place':   'bracket.thirdPlace',
+  'Final':         'bracket.final',
+};
 
 interface MatchHeaderProps {
   match: Match;
 }
 
-function TeamCrest({ teamId, logoUrl, name, align }: { teamId: number; logoUrl: string; name: string; align: 'left' | 'right' }) {
+function TeamCrest({ teamId, logoUrl, name, rawName, align }: { teamId: number; logoUrl: string; name: string; rawName: string; align: 'left' | 'right' }) {
   const goToTeam = useTeamNavigation();
+  const isJordan = isFavoriteTeam(rawName);
   return (
     <Pressable
       style={({ pressed }) => [styles.teamCol, { alignItems: align === 'left' ? 'flex-start' : 'flex-end', opacity: pressed ? 0.75 : 1 }]}
       onPress={() => goToTeam(teamId)}
     >
-      <Image source={{ uri: logoUrl }} style={styles.crest} resizeMode="contain" />
-      <Text style={[styles.teamName, { textAlign: align }]} numberOfLines={2}>{name}</Text>
+      <View style={[styles.crestWrap, isJordan && styles.crestWrapFavorite]}>
+        <Image source={{ uri: logoUrl }} style={styles.crest} resizeMode="contain" />
+      </View>
+      <Text style={[styles.teamName, isJordan && styles.teamNameFavorite, { textAlign: align }]} numberOfLines={2}>{name}</Text>
     </Pressable>
   );
 }
@@ -36,6 +50,8 @@ function ScoreCenter({ match }: { match: Match }) {
     if (status === 'AET') return t('match.afterET');
     if (status === 'PEN') return t('match.afterPens');
     if (status === 'NS') return t('match.notStarted');
+    if (status === 'PST') return t('match.postponed');
+    if (status === 'CANC') return t('match.cancelled');
     if (isLive) return matchClockLabel(match);
     return '';
   };
@@ -64,25 +80,26 @@ function ScoreCenter({ match }: { match: Match }) {
 }
 
 export function MatchHeader({ match }: MatchHeaderProps) {
+  const { t } = useTranslation();
   const { isRTL } = useRTL();
   const homeName = useTeamName(match.homeTeam.name);
   const awayName = useTeamName(match.awayTeam.name);
 
   // In RTL, home team is on the right (Arabic reading order: right = first)
   const leftTeam = isRTL
-    ? { id: match.awayTeam.id, logo: match.awayTeam.logoUrl, name: awayName, align: 'left' as const }
-    : { id: match.homeTeam.id, logo: match.homeTeam.logoUrl, name: homeName, align: 'left' as const };
+    ? { id: match.awayTeam.id, logo: match.awayTeam.logoUrl, name: awayName, rawName: match.awayTeam.name, align: 'left' as const }
+    : { id: match.homeTeam.id, logo: match.homeTeam.logoUrl, name: homeName, rawName: match.homeTeam.name, align: 'left' as const };
   const rightTeam = isRTL
-    ? { id: match.homeTeam.id, logo: match.homeTeam.logoUrl, name: homeName, align: 'right' as const }
-    : { id: match.awayTeam.id, logo: match.awayTeam.logoUrl, name: awayName, align: 'right' as const };
+    ? { id: match.homeTeam.id, logo: match.homeTeam.logoUrl, name: homeName, rawName: match.homeTeam.name, align: 'right' as const }
+    : { id: match.awayTeam.id, logo: match.awayTeam.logoUrl, name: awayName, rawName: match.awayTeam.name, align: 'right' as const };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.round}>{match.round}</Text>
+      <Text style={styles.round}>{t(ROUND_KEY[match.round])}</Text>
       <View style={styles.teamsRow}>
-        <TeamCrest teamId={leftTeam.id} logoUrl={leftTeam.logo} name={leftTeam.name} align={leftTeam.align} />
+        <TeamCrest teamId={leftTeam.id} logoUrl={leftTeam.logo} name={leftTeam.name} rawName={leftTeam.rawName} align={leftTeam.align} />
         <ScoreCenter match={match} />
-        <TeamCrest teamId={rightTeam.id} logoUrl={rightTeam.logo} name={rightTeam.name} align={rightTeam.align} />
+        <TeamCrest teamId={rightTeam.id} logoUrl={rightTeam.logo} name={rightTeam.name} rawName={rightTeam.rawName} align={rightTeam.align} />
       </View>
     </View>
   );
@@ -114,7 +131,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
   },
-  crest: { width: 64, height: 64 },
+  crestWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+  },
+  crestWrapFavorite: {
+    borderWidth: 2,
+    borderColor: colors.gold,
+    borderRadius: radius.sm,
+    padding: 2,
+  },
+  crest: { width: '100%', height: '100%' },
+  teamNameFavorite: { color: colors.gold },
   teamName: {
     color: colors.textPrimary,
     fontFamily: fontFamily.bodySemiBold,

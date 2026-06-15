@@ -1,8 +1,8 @@
 export const colors = {
   background: '#020B18',
-  surface: '#061524',
-  surfaceElevated: '#0D2137',
-  border: '#1A3550',
+  surface: '#0C2338',
+  surfaceElevated: '#162F4A',
+  border: '#1F3D5A',
 
   gold: '#F4C842',
   goldLight: '#F8D96A',
@@ -53,6 +53,7 @@ export const fontFamily = {
   bodyRegular: 'Inter_400Regular',
   bodyMedium: 'Inter_500Medium',
   bodySemiBold: 'Inter_600SemiBold',
+  bodyBold: 'Inter_700Bold',
   arabicRegular: 'Cairo_400Regular',
   arabicMedium: 'Cairo_500Medium',
   arabicSemiBold: 'Cairo_600SemiBold',

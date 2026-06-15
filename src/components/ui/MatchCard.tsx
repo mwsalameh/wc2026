@@ -2,6 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants/theme';
+import { isFavoriteTeam } from '@/constants/favoriteTeam';
 import { formatMatchTime, formatMatchDate } from '@/utils/dateTime';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useLanguageStore } from '@/store/languageStore';
@@ -22,14 +23,16 @@ function StatusBadge({ match }: { match: Match }) {
     return (
       <View style={styles.liveBadge}>
         <Text style={styles.liveText}>
-          {match.status === 'HT' ? t('match.htShort') : matchClockLabel(match)}
+          {match.status === 'HT' ? t('match.halfTimeLive') : matchClockLabel(match)}
         </Text>
       </View>
     );
   }
-  if (match.status === 'FT') return <Text style={styles.ftText}>{t('match.ftShort')}</Text>;
-  if (match.status === 'AET') return <Text style={styles.ftText}>{t('match.aetShort')}</Text>;
-  if (match.status === 'PEN') return <Text style={styles.ftText}>{t('match.penShort')}</Text>;
+  if (match.status === 'FT') return <Text style={styles.ftText}>{t('match.fullTime')}</Text>;
+  if (match.status === 'AET') return <Text style={styles.ftText}>{t('match.afterET')}</Text>;
+  if (match.status === 'PEN') return <Text style={styles.ftText}>{t('match.afterPens')}</Text>;
+  if (match.status === 'PST') return <Text style={styles.ftText}>{t('match.postponed')}</Text>;
+  if (match.status === 'CANC') return <Text style={styles.ftText}>{t('match.cancelled')}</Text>;
   return <Text style={styles.timeText}>{formatMatchTime(match.kickoffUtc)}</Text>;
 }
 
@@ -38,8 +41,8 @@ export function MatchCard({ match }: MatchCardProps) {
   const { language } = useLanguageStore();
   const { isRTL } = useRTL();
   const goToTeam = useTeamNavigation();
-  const finished = ['FT', 'AET', 'PEN'].includes(match.status);
   const hasScore = match.score.home !== null && match.score.away !== null;
+  const isJordanMatch = isFavoriteTeam(match.homeTeam.name) || isFavoriteTeam(match.awayTeam.name);
   const homeName = useTeamName(match.homeTeam.name);
   const awayName = useTeamName(match.awayTeam.name);
   const dateLabels = { today: t('common.today'), tomorrow: t('common.tomorrow'), yesterday: t('common.yesterday'), language };
@@ -54,7 +57,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, isJordanMatch && styles.cardFavorite, pressed && styles.pressed]}
       onPress={() => router.push(`/match/${match.id}`)}
     >
       <View style={styles.team}>
@@ -69,9 +72,9 @@ export function MatchCard({ match }: MatchCardProps) {
       <View style={styles.center}>
         {hasScore ? (
           <View style={styles.scoreRow}>
-            <Text style={[styles.score, finished && styles.scoreDim]}>{left.score}</Text>
+            <Text style={styles.score}>{left.score}</Text>
             <Text style={styles.scoreSep}>–</Text>
-            <Text style={[styles.score, finished && styles.scoreDim]}>{right.score}</Text>
+            <Text style={styles.score}>{right.score}</Text>
           </View>
         ) : null}
         <StatusBadge match={match} />
@@ -105,6 +108,10 @@ const styles = StyleSheet.create({
     minHeight: 64,
   },
   pressed: { opacity: 0.75 },
+  cardFavorite: {
+    borderColor: colors.gold,
+    borderWidth: 1.5,
+  },
   crest: { width: 28, height: 28, flexShrink: 0 },
   team: {
     flex: 1,
@@ -138,7 +145,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
   },
-  scoreDim: { color: colors.textSecondary },
   scoreSep: {
     color: colors.textMuted,
     fontFamily: fontFamily.bodyRegular,
@@ -159,6 +165,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: fontFamily.bodyMedium,
     fontSize: fontSize.xs,
+    textAlign: 'center',
   },
   timeText: {
     color: colors.gold,

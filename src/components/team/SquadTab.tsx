@@ -1,5 +1,7 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
 import { getPlayerNameAr } from '@/constants/playerNamesAr';
@@ -68,7 +70,10 @@ function PlayerRow({
   const displayName = isRTL ? getPlayerNameAr(player.name) : player.name;
 
   return (
-    <View style={[styles.playerRow, { flexDirection: rowDir }, isLast && styles.playerRowLast]}>
+    <Pressable
+      style={({ pressed }) => [styles.playerRow, { flexDirection: rowDir }, isLast && styles.playerRowLast, pressed && styles.playerRowPressed]}
+      onPress={() => router.push({ pathname: '/player/[id]', params: { id: player.id, name: player.name } })}
+    >
       <View style={styles.photoWrap}>
         <PlayerAvatar uri={player.photo} size={40} />
       </View>
@@ -78,7 +83,8 @@ function PlayerRow({
       <Text style={[styles.playerName, { textAlign, flex: 1 }]} numberOfLines={1}>
         {displayName}
       </Text>
-    </View>
+      <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={14} color={colors.textMuted} style={{ opacity: 0.5 }} />
+    </Pressable>
   );
 }
 
@@ -224,6 +230,7 @@ const styles = StyleSheet.create({
   playerRowLast: {
     borderBottomWidth: 0,
   },
+  playerRowPressed: { opacity: 0.6 },
 
   // ── Photo ──
   photoWrap: {

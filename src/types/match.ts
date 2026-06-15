@@ -50,6 +50,7 @@ export interface MatchEvent {
   assistId: number | null;
   type: EventType;
   detail: string;
+  comments: string | null;
 }
 
 export interface Match {
@@ -58,10 +59,11 @@ export interface Match {
   awayTeam: TeamRef;
   kickoffUtc: string;
   venue: Venue;
-  referee?: string;
+  referee?: { name: string; country: string };
   status: MatchStatus;
   elapsed?: number;
   extra?: number;
+  firstHalfAddedTime?: number | null;
   score: Score;
   groupId?: string;
   round: TournamentRound;

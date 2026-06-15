@@ -20,7 +20,7 @@ function LiveMatchRow({ match }: { match: Match }) {
   const awayName = useTeamName(match.awayTeam.name);
 
   const elapsedLabel =
-    match.status === 'HT' ? t('match.htShort') : matchClockLabel(match);
+    match.status === 'HT' ? t('match.halfTimeLive') : matchClockLabel(match);
 
   // In RTL: away team renders on the left, home team on the right
   const left = isRTL

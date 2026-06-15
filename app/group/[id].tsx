@@ -12,7 +12,7 @@ import { useAllStandings } from '@/hooks/useStandings';
 import { useAllFixtures } from '@/hooks/useFixtures';
 import { useRTL } from '@/hooks/useRTL';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
-import { LangButton } from '@/components/ui/ScreenHeader';
+import { HomeButton } from '@/components/ui/ScreenHeader';
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +44,7 @@ export default function GroupDetailScreen() {
           />
         </Pressable>
         <Text style={styles.title}>{t('groups.group', { id })}</Text>
-        <LangButton />
+        <HomeButton />
       </View>
 
       {sError ? (

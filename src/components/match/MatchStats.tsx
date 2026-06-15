@@ -78,7 +78,10 @@ function PotmCard({ match }: { match: Match }) {
         <Image source={{ uri: best.teamLogo }} style={potmStyles.teamLogo} resizeMode="contain" />
         <Text style={potmStyles.teamName} numberOfLines={1}>{teamName}</Text>
       </View>
-      <Text style={potmStyles.rating}>★ {best.rating.toFixed(1)}</Text>
+      {best.isOfficial
+        ? <Text style={potmStyles.officialBadge}>{t('match.officialAward')}</Text>
+        : <Text style={potmStyles.rating}>★ {best.rating.toFixed(1)}</Text>
+      }
     </View>
   );
 }
@@ -269,5 +272,13 @@ const potmStyles = StyleSheet.create({
     fontFamily: fontFamily.bodySemiBold,
     fontSize: fontSize.small,
     marginTop: spacing.xs,
+  },
+  officialBadge: {
+    color: colors.gold,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
 });

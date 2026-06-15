@@ -14,7 +14,7 @@ import { useCoach, useCoachOverride } from '@/hooks/useCoach';
 import { MatchCard } from '@/components/ui/MatchCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SquadTab } from '@/components/team/SquadTab';
-import { LangButton } from '@/components/ui/ScreenHeader';
+import { HomeButton } from '@/components/ui/ScreenHeader';
 
 type TeamTab = 'matches' | 'squad';
 
@@ -73,7 +73,7 @@ export default function TeamDetailScreen() {
           <View style={styles.headerTitlePlaceholder} />
         )}
 
-        <LangButton />
+        <HomeButton />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>

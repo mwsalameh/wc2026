@@ -22,14 +22,15 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Log api-sports error objects that arrive with HTTP 200
-    if (response.data?.errors && Object.keys(response.data.errors).length > 0) {
+    if (__DEV__ && response.data?.errors && Object.keys(response.data.errors).length > 0) {
       console.warn('[API] api-sports error:', JSON.stringify(response.data.errors));
     }
     return response;
   },
   (error) => {
-    console.error('[API] request failed:', error?.config?.url, error?.response?.status, error?.message);
+    if (error?.message !== 'BUDGET_LIMIT_REACHED' && __DEV__) {
+      console.error('[API] request failed:', error?.config?.url, error?.response?.status, error?.message);
+    }
     return Promise.reject(error);
   }
 );

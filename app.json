@@ -9,7 +9,8 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wc2026.app"
+      "bundleIdentifier": "com.wc2026.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,6 +20,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.wc2026.app",
+      "versionCode": 1,
       "predictiveBackGestureEnabled": true
     },
     "web": {

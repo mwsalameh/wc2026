@@ -1,13 +1,18 @@
-import { View, Text, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
+import { router } from 'expo-router';
 import { useLineups } from '@/hooks/useLineups';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useRTL } from '@/hooks/useRTL';
 import { getPlayerNameAr } from '@/constants/playerNamesAr';
-import type { Match } from '@/types/match';
+import { fetchFixturePlayers } from '@/api/fixtures';
+import { QUERY_KEYS, STALE_TIMES } from '@/config/queryClient';
+import type { Match, MatchEvent } from '@/types/match';
 import type { Player, Lineup } from '@/types/lineup';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,11 +37,102 @@ function parseFormationRows(players: Player[]): Player[][] {
 }
 
 function pitchDisplayName(englishName: string, isRTL: boolean): string {
-  if (!isRTL) return englishName;
-  return getPlayerNameAr(englishName);
+  const full = isRTL ? getPlayerNameAr(englishName) : englishName;
+  const parts = full.trim().split(/\s+/);
+  return parts[parts.length - 1];
 }
 
-// ─── Goalpost (top / bottom for portrait pitch) ───────────────────────────────
+type CardType = 'yellow' | 'red';
+
+function buildCardMap(events: MatchEvent[]): Map<number, CardType> {
+  const map = new Map<number, CardType>();
+  for (const e of events) {
+    if (e.type !== 'Card') continue;
+    const isRed =
+      e.detail === 'Red Card' ||
+      e.detail === 'Yellow-Red Card' ||
+      map.get(e.playerId) === 'yellow'; // second yellow becomes red
+    map.set(e.playerId, isRed ? 'red' : 'yellow');
+  }
+  return map;
+}
+
+function buildRatingMap(playerStats: any[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const teamData of playerStats) {
+    for (const p of teamData.players ?? []) {
+      const rating = parseFloat(p.statistics?.[0]?.games?.rating ?? '0');
+      if (rating > 0) map.set(p.player.id as number, rating);
+    }
+  }
+  return map;
+}
+
+function buildCaptainSet(playerStats: any[]): Set<number> {
+  const set = new Set<number>();
+  for (const teamData of playerStats) {
+    for (const p of teamData.players ?? []) {
+      if (p.statistics?.[0]?.games?.captain === true) {
+        set.add(p.player.id as number);
+      }
+    }
+  }
+  return set;
+}
+
+function buildSubstMaps(events: MatchEvent[]): { subbedOnIds: Set<number>; subbedOffIds: Set<number> } {
+  const subbedOnIds = new Set<number>();
+  const subbedOffIds = new Set<number>();
+  for (const e of events) {
+    if (e.type !== 'subst') continue;
+    // API-Football: player = going OFF (startXI), assist = coming ON (sub bench)
+    subbedOffIds.add(e.playerId);
+    if (e.assistId != null) subbedOnIds.add(e.assistId);
+  }
+  return { subbedOnIds, subbedOffIds };
+}
+
+function buildGoalMap(events: MatchEvent[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const e of events) {
+    if (e.type !== 'Goal' || e.detail === 'Missed Penalty') continue;
+    map.set(e.playerId, (map.get(e.playerId) ?? 0) + 1);
+  }
+  return map;
+}
+
+function buildAssistMap(events: MatchEvent[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const e of events) {
+    if (e.type !== 'Goal' || e.detail === 'Missed Penalty' || e.detail === 'Own Goal') continue;
+    if (e.assistId != null) map.set(e.assistId, (map.get(e.assistId) ?? 0) + 1);
+  }
+  return map;
+}
+
+function ratingColor(rating: number): string {
+  if (rating >= 8.0) return colors.gold;
+  if (rating >= 7.0) return '#22C55E';
+  if (rating >= 6.0) return '#FFFFFF';
+  return '#EF4444';
+}
+
+function buildTopRaterIds(home: Lineup, away: Lineup, ratingMap: Map<number, number>): Set<number> {
+  const set = new Set<number>();
+  for (const lineup of [home, away]) {
+    let topId: number | null = null;
+    let topRating = 0;
+    for (const p of [...lineup.startXI, ...lineup.substitutes]) {
+      const r = ratingMap.get(p.id) ?? 0;
+      if (r > topRating) { topRating = r; topId = p.id; }
+    }
+    if (topId !== null && topRating > 0) set.add(topId);
+  }
+  return set;
+}
+
+
+// ─── Goalpost ─────────────────────────────────────────────────────────────────
 
 function GoalPost({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: number }) {
   const goalW = Math.round(pitchWidth * 0.22);
@@ -48,11 +144,8 @@ function GoalPost({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: num
 
   return (
     <View style={{ position: 'absolute', left, bottom: isHome ? 0 : undefined, top: isHome ? undefined : 0, width: goalW, height: goalH }}>
-      {/* left post */}
       <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: bar, backgroundColor: color }} />
-      {/* right post */}
       <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: bar, backgroundColor: color }} />
-      {/* back bar */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: isHome ? 0 : undefined, top: isHome ? undefined : 0, height: bar, backgroundColor: color }} />
     </View>
   );
@@ -60,24 +153,112 @@ function GoalPost({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: num
 
 // ─── Pitch player dot ─────────────────────────────────────────────────────────
 
-function PitchDot({ player, home, isRTL }: { player: Player; home: boolean; isRTL: boolean }) {
+function PitchDot({
+  player,
+  home,
+  isRTL,
+  card,
+  rating,
+  subbedOff,
+  goalCount,
+  assistCount,
+  captainSet,
+  topRaterIds,
+}: {
+  player: Player;
+  home: boolean;
+  isRTL: boolean;
+  card?: CardType;
+  rating?: number;
+  subbedOff: boolean;
+  goalCount: number;
+  assistCount: number;
+  captainSet: Set<number>;
+  topRaterIds: Set<number>;
+}) {
+  const iconsStr = '⚽'.repeat(goalCount) + '👟'.repeat(assistCount);
+  const isCaptain = player.captain === true || captainSet.has(player.id);
+  const showInjury = !!player.injured;
   return (
-    <View style={styles.pitchDot}>
-      <View style={[styles.pitchCircle, home ? styles.circleHome : styles.circleAway]}>
-        <PlayerAvatar uri={player.photo} size={38} backgroundColor="transparent" />
+    <Pressable
+      style={({ pressed }) => [styles.pitchDot, pressed && { opacity: 0.7 }]}
+      onPress={() => router.push({ pathname: '/player/[id]', params: { id: player.id, name: player.name } })}
+    >
+      <View style={styles.pitchDotInner}>
+        <View style={[styles.pitchCircle, home ? styles.circleHome : styles.circleAway]}>
+          <PlayerAvatar uri={player.photo} size={38} backgroundColor="transparent" />
+        </View>
+
+        {/* Captain circle + jersey number — top-left */}
+        <View style={styles.jerseyBadge}>
+          {isCaptain && (
+            <View style={styles.captainCircle}>
+              <Text style={styles.captainCircleText}>C</Text>
+            </View>
+          )}
+          <Text style={styles.jerseyText}>{player.number}</Text>
+        </View>
+
+        {/* Card badge — bottom-left */}
+        {card && (
+          <View style={[styles.cardBadge, card === 'yellow' ? styles.cardYellow : styles.cardRed]} />
+        )}
+
+        {/* Goal / assist icons — top-right, pushed outside the circle */}
+        {iconsStr.length > 0 && (
+          <Text style={styles.pitchIconsBadge}>{iconsStr}</Text>
+        )}
+
+        {/* Injury badge — bottom-right */}
+        {showInjury && (
+          <View style={styles.injuryBadge}>
+            <Text style={styles.injuryText}>+</Text>
+          </View>
+        )}
+
+        {/* Rating badge — bottom-center, only after FT */}
+        {rating !== undefined && rating > 0 && (
+          <View style={styles.ratingBadge}>
+            <Text style={[styles.ratingText, { color: ratingColor(rating) }]}>{rating.toFixed(1)}</Text>
+          </View>
+        )}
       </View>
-      <Text style={styles.pitchName} numberOfLines={2}>{pitchDisplayName(player.name, isRTL)}</Text>
-    </View>
+
+      <Text style={styles.pitchName} numberOfLines={1}>
+        {topRaterIds.has(player.id) ? '⭐ ' : ''}{pitchDisplayName(player.name, isRTL)}
+        {subbedOff ? <Text style={styles.pitchSubOffArrow}> ↓</Text> : null}
+      </Text>
+
+    </Pressable>
   );
 }
 
-// ─── Formation half (portrait: rows rendered top→bottom) ──────────────────────
+// ─── Formation half ───────────────────────────────────────────────────────────
 
-function FormationHalf({ lineup, home, isRTL }: { lineup: Lineup; home: boolean; isRTL: boolean }) {
+function FormationHalf({
+  lineup,
+  home,
+  isRTL,
+  cardMap,
+  ratingMap,
+  captainSet,
+  topRaterIds,
+  subbedOffIds,
+  goalMap,
+  assistMap,
+}: {
+  lineup: Lineup;
+  home: boolean;
+  isRTL: boolean;
+  cardMap: Map<number, CardType>;
+  ratingMap: Map<number, number>;
+  captainSet: Set<number>;
+  topRaterIds: Set<number>;
+  subbedOffIds: Set<number>;
+  goalMap: Map<number, number>;
+  assistMap: Map<number, number>;
+}) {
   const rows = parseFormationRows(lineup.startXI);
-  // Portrait orientation:
-  //   away (top half):  GK row first → rows ascending  (GK at top, strikers near center)
-  //   home (bottom half): strikers near center → rows reversed (strikers at top of half, GK at bottom)
   const displayRows = home ? [...rows].reverse() : rows;
 
   return (
@@ -85,7 +266,19 @@ function FormationHalf({ lineup, home, isRTL }: { lineup: Lineup; home: boolean;
       {displayRows.map((rowPlayers, i) => (
         <View key={i} style={styles.formationRow}>
           {rowPlayers.map((p) => (
-            <PitchDot key={p.id} player={p} home={home} isRTL={isRTL} />
+            <PitchDot
+              key={p.id}
+              player={p}
+              home={home}
+              isRTL={isRTL}
+              card={cardMap.get(p.id)}
+              rating={ratingMap.get(p.id)}
+              subbedOff={subbedOffIds.has(p.id)}
+              goalCount={goalMap.get(p.id) ?? 0}
+              assistCount={assistMap.get(p.id) ?? 0}
+              captainSet={captainSet}
+              topRaterIds={topRaterIds}
+            />
           ))}
         </View>
       ))}
@@ -93,9 +286,39 @@ function FormationHalf({ lineup, home, isRTL }: { lineup: Lineup; home: boolean;
   );
 }
 
-// ─── Full pitch view (portrait) ───────────────────────────────────────────────
+// ─── Full pitch view ──────────────────────────────────────────────────────────
 
-function PitchView({ home, away, width, height, isRTL }: { home: Lineup; away: Lineup; width: number; height: number; isRTL: boolean }) {
+function PitchView({
+  home,
+  away,
+  width,
+  height,
+  isRTL,
+  homeTeamName,
+  awayTeamName,
+  cardMap,
+  ratingMap,
+  captainSet,
+  topRaterIds,
+  subbedOffIds,
+  goalMap,
+  assistMap,
+}: {
+  home: Lineup;
+  away: Lineup;
+  width: number;
+  height: number;
+  isRTL: boolean;
+  homeTeamName: string;
+  awayTeamName: string;
+  cardMap: Map<number, CardType>;
+  ratingMap: Map<number, number>;
+  captainSet: Set<number>;
+  topRaterIds: Set<number>;
+  subbedOffIds: Set<number>;
+  goalMap: Map<number, number>;
+  assistMap: Map<number, number>;
+}) {
   return (
     <View style={[styles.pitch, { width, height }]}>
       <View style={styles.pitchLines}>
@@ -105,10 +328,28 @@ function PitchView({ home, away, width, height, isRTL }: { home: Lineup; away: L
       <GoalPost side="away" pitchWidth={width} />
       <GoalPost side="home" pitchWidth={width} />
 
+      {/* Team name labels — away top-left, home bottom-right */}
+      <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelTopLeft]} numberOfLines={1}>
+        {awayTeamName}
+      </Text>
+      <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelBottomRight]} numberOfLines={1}>
+        {homeTeamName}
+      </Text>
+
       <View style={styles.pitchInner}>
-        <FormationHalf lineup={away} home={false} isRTL={isRTL} />
+        <FormationHalf
+          lineup={away} home={false} isRTL={isRTL}
+          cardMap={cardMap} ratingMap={ratingMap} captainSet={captainSet}
+          topRaterIds={topRaterIds} subbedOffIds={subbedOffIds}
+          goalMap={goalMap} assistMap={assistMap}
+        />
         <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-        <FormationHalf lineup={home} home isRTL={isRTL} />
+        <FormationHalf
+          lineup={home} home isRTL={isRTL}
+          cardMap={cardMap} ratingMap={ratingMap} captainSet={captainSet}
+          topRaterIds={topRaterIds} subbedOffIds={subbedOffIds}
+          goalMap={goalMap} assistMap={assistMap}
+        />
       </View>
     </View>
   );
@@ -116,36 +357,94 @@ function PitchView({ home, away, width, height, isRTL }: { home: Lineup; away: L
 
 // ─── Substitutes list ─────────────────────────────────────────────────────────
 
-function SubRow({ player, rtl, showAr }: { player: Player; rtl: boolean; showAr: boolean }) {
+function SubRow({
+  player, rtl, showAr, subbedOn, card, goalCount, assistCount, captainSet, topRaterIds,
+}: {
+  player: Player;
+  rtl: boolean;
+  showAr: boolean;
+  subbedOn: boolean;
+  card?: CardType;
+  goalCount: number;
+  assistCount: number;
+  captainSet: Set<number>;
+  topRaterIds: Set<number>;
+}) {
   const displayName = showAr ? getPlayerNameAr(player.name) : player.name;
+  const iconsStr = '⚽'.repeat(goalCount) + '👟'.repeat(assistCount);
+  const isCaptain = player.captain === true || captainSet.has(player.id);
+  const showInjury = !!player.injured;
   return (
-    <View style={[styles.subRow, rtl && { flexDirection: 'row-reverse' }]}>
+    <Pressable
+      style={({ pressed }) => [styles.subRow, rtl && { flexDirection: 'row-reverse' }, pressed && { opacity: 0.65 }]}
+      onPress={() => router.push({ pathname: '/player/[id]', params: { id: player.id, name: player.name } })}
+    >
       <View style={styles.subAvatarWrap}>
         <PlayerAvatar uri={player.photo} size={26} radius={5} />
         <View style={styles.subBadge}>
+          {isCaptain && (
+            <View style={styles.subCaptainCircle}>
+              <Text style={styles.subCaptainCircleText}>C</Text>
+            </View>
+          )}
           <Text style={styles.subBadgeNum}>{player.number}</Text>
         </View>
       </View>
-      <Text style={[styles.subName, { textAlign: rtl ? 'right' : 'left' }]} numberOfLines={1}>
-        {displayName}
-      </Text>
-    </View>
+      <View style={[styles.subNameRow, { flexDirection: rtl ? 'row-reverse' : 'row' }]}>
+        {subbedOn && <Text style={styles.subOnArrow}>↑</Text>}
+        <Text style={[styles.subName, { textAlign: rtl ? 'right' : 'left' }]} numberOfLines={1}>
+          {topRaterIds.has(player.id) ? '⭐ ' : ''}{displayName}
+        </Text>
+        {iconsStr.length > 0 && <Text style={styles.subIcons}>{iconsStr}</Text>}
+      </View>
+      {(card || showInjury) && (
+        <View style={[styles.subIndicators, { flexDirection: rtl ? 'row-reverse' : 'row' }]}>
+          {showInjury && (
+            <View style={styles.subInjuryBadge}>
+              <Text style={styles.subInjuryText}>+</Text>
+            </View>
+          )}
+          {card && (
+            <View style={[styles.subCardBadge, card === 'yellow' ? styles.cardYellow : styles.cardRed]} />
+          )}
+        </View>
+      )}
+    </Pressable>
   );
 }
 
-function SubsColumn({ lineup, rtl, showAr }: { lineup: Lineup; rtl: boolean; showAr: boolean }) {
-  const { t } = useTranslation();
+function SubsColumn({
+  lineup, rtl, showAr, subbedOnIds, cardMap, goalMap, assistMap, captainSet, topRaterIds,
+}: {
+  lineup: Lineup;
+  rtl: boolean;
+  showAr: boolean;
+  subbedOnIds: Set<number>;
+  cardMap: Map<number, CardType>;
+  goalMap: Map<number, number>;
+  assistMap: Map<number, number>;
+  captainSet: Set<number>;
+  topRaterIds: Set<number>;
+}) {
   const teamName = useTeamName(lineup.team.name);
   return (
     <View style={styles.subsCol}>
       <Text style={[styles.subsTeamName, { textAlign: rtl ? 'right' : 'left' }]} numberOfLines={1}>
         {teamName}
       </Text>
-      <Text style={[styles.subsLabel, { textAlign: rtl ? 'right' : 'left' }]}>
-        {t('match.substitutes')}
-      </Text>
       {lineup.substitutes.map((p) => (
-        <SubRow key={p.id} player={p} rtl={rtl} showAr={showAr} />
+        <SubRow
+          key={p.id}
+          player={p}
+          rtl={rtl}
+          showAr={showAr}
+          subbedOn={subbedOnIds.has(p.id)}
+          card={cardMap.get(p.id)}
+          goalCount={goalMap.get(p.id) ?? 0}
+          assistCount={assistMap.get(p.id) ?? 0}
+          captainSet={captainSet}
+          topRaterIds={topRaterIds}
+        />
       ))}
     </View>
   );
@@ -153,11 +452,11 @@ function SubsColumn({ lineup, rtl, showAr }: { lineup: Lineup; rtl: boolean; sho
 
 // ─── Coach row ────────────────────────────────────────────────────────────────
 
-function CoachCard({ lineup, rtl }: { lineup: Lineup; rtl: boolean }) {
+function CoachCard({ lineup, rtl, showAr }: { lineup: Lineup; rtl: boolean; showAr: boolean }) {
   const { t } = useTranslation();
   const teamName = useTeamName(lineup.team.name);
   const coachName = lineup.coach?.name ?? '—';
-  const displayCoachName = rtl ? getPlayerNameAr(coachName) : coachName;
+  const displayCoachName = showAr ? getPlayerNameAr(coachName) : coachName;
   return (
     <View style={[styles.coachCard, { alignItems: rtl ? 'flex-end' : 'flex-start' }]}>
       <PlayerAvatar uri={lineup.coach?.photo} size={36} />
@@ -174,49 +473,13 @@ function CoachCard({ lineup, rtl }: { lineup: Lineup; rtl: boolean }) {
   );
 }
 
-// ─── Placeholder (when no lineup data) ───────────────────────────────────────
-
-const SILO_ROWS = [1, 4, 3, 3];
-
-function SiloHalf({ mirrored }: { mirrored: boolean }) {
-  const rows = mirrored ? [...SILO_ROWS].reverse() : SILO_ROWS;
-  return (
-    <View style={styles.formationHalf}>
-      {rows.map((count, i) => (
-        <View key={i} style={styles.formationRow}>
-          {Array.from({ length: count }).map((_, j) => (
-            <View key={j} style={styles.siloDot} />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
+// ─── Placeholder ──────────────────────────────────────────────────────────────
 
 function LineupsPlaceholder({ finished }: { finished: boolean }) {
   const { t } = useTranslation();
-  const { width: screenWidth } = useWindowDimensions();
-  const pitchWidth = screenWidth - spacing.lg * 4;
-  const pitchHeight = Math.round(pitchWidth * 1.55);
-
   return (
     <View style={styles.placeholder}>
-      <View style={[styles.pitch, { width: pitchWidth, height: pitchHeight }]}>
-        <View style={styles.pitchLines}>
-          <View style={styles.centreLine} />
-          <View style={styles.centreCircle} />
-        </View>
-        <GoalPost side="away" pitchWidth={pitchWidth} />
-        <GoalPost side="home" pitchWidth={pitchWidth} />
-        <View style={styles.pitchInner}>
-          <SiloHalf mirrored={false} />
-          <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-          <SiloHalf mirrored />
-        </View>
-        <View style={styles.pitchOverlay}>
-          <Ionicons name="football-outline" size={28} color={colors.gold} style={{ opacity: 0.6 }} />
-        </View>
-      </View>
+      <Ionicons name="football-outline" size={44} color={colors.gold} style={{ opacity: 0.45 }} />
       <View style={styles.messageBox}>
         <Text style={styles.messageTitle}>
           {finished ? t('match.lineupsUnavailableTitle') : t('match.lineupsNotAvailableTitle')}
@@ -242,6 +505,32 @@ export function MatchLineups({ match }: { match: Match }) {
     match.status === 'NS' &&
     new Date(match.kickoffUtc).getTime() - Date.now() > 2 * 60 * 60 * 1000;
 
+  const isLive = match.status === 'LIVE' || match.status === 'HT';
+
+  // Player stats: fetched for finished matches (ratings) and live matches (captain).
+  // 6-hour stale time means it fires at most once per viewing session.
+  const { data: playerStats } = useQuery({
+    queryKey: QUERY_KEYS.fixturePlayers(match.id),
+    queryFn: () => fetchFixturePlayers(match.id),
+    staleTime: STALE_TIMES.FIXTURE_PLAYERS,
+    enabled: isFinished || isLive,
+  });
+
+  const events = match.events ?? [];
+  const cardMap = useMemo(() => buildCardMap(events), [events]);
+  const ratingMap = useMemo(() => (playerStats ? buildRatingMap(playerStats) : new Map<number, number>()), [playerStats]);
+  const captainSet = useMemo(() => (playerStats ? buildCaptainSet(playerStats) : new Set<number>()), [playerStats]);
+  const topRaterIds = useMemo(() => {
+    if (!lineups?.home || !lineups?.away || ratingMap.size === 0) return new Set<number>();
+    return buildTopRaterIds(lineups.home, lineups.away, ratingMap);
+  }, [lineups, ratingMap]);
+  const { subbedOnIds, subbedOffIds } = useMemo(() => buildSubstMaps(events), [events]);
+  const goalMap = useMemo(() => buildGoalMap(events), [events]);
+  const assistMap = useMemo(() => buildAssistMap(events), [events]);
+
+  const homeTeamName = useTeamName(match.homeTeam.name);
+  const awayTeamName = useTeamName(match.awayTeam.name);
+
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
@@ -250,36 +539,58 @@ export function MatchLineups({ match }: { match: Match }) {
     );
   }
 
-  if (!lineups?.home && !lineups?.away) {
+  if (!lineups?.home || !lineups?.away) {
     return <LineupsPlaceholder finished={isFinished && !isBeforeWindow} />;
   }
 
-  const home = lineups.home!;
-  const away = lineups.away!;
+  const home = lineups.home;
+  const away = lineups.away;
   const pitchWidth = screenWidth - spacing.lg * 2;
   const pitchHeight = Math.round(pitchWidth * 1.55);
 
   return (
     <View style={styles.container}>
-      {/* Pitch – portrait orientation, formation labels outside the pitch */}
       <View style={[styles.pitchWrapper, { width: pitchWidth }]}>
         {away.formation ? (
           <Text style={styles.formationLabelText}>{away.formation}</Text>
         ) : null}
-        <PitchView home={home} away={away} width={pitchWidth} height={pitchHeight} isRTL={isRTL} />
+        <PitchView
+          home={home}
+          away={away}
+          width={pitchWidth}
+          height={pitchHeight}
+          isRTL={isRTL}
+          homeTeamName={homeTeamName}
+          awayTeamName={awayTeamName}
+          cardMap={cardMap}
+          ratingMap={ratingMap}
+          captainSet={captainSet}
+          topRaterIds={topRaterIds}
+          subbedOffIds={subbedOffIds}
+          goalMap={goalMap}
+          assistMap={assistMap}
+        />
         {home.formation ? (
           <Text style={styles.formationLabelText}>{home.formation}</Text>
         ) : null}
       </View>
 
-      {/* Substitutes */}
-      <View style={[styles.dividerRow, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+      {/* Substitutes — title centered above both columns */}
+      <View style={styles.dividerRow}>
         <Text style={styles.dividerLabel}>{t('match.substitutes')}</Text>
       </View>
       <View style={[styles.subsRow, { flexDirection: rowDir }]}>
-        <SubsColumn lineup={isRTL ? away : home} rtl={isRTL} showAr={isRTL} />
+        <SubsColumn
+          lineup={home} rtl={isRTL} showAr={isRTL}
+          subbedOnIds={subbedOnIds} cardMap={cardMap}
+          goalMap={goalMap} assistMap={assistMap} captainSet={captainSet} topRaterIds={topRaterIds}
+        />
         <View style={styles.subsDivider} />
-        <SubsColumn lineup={isRTL ? home : away} rtl={isRTL} showAr={isRTL} />
+        <SubsColumn
+          lineup={away} rtl={!isRTL} showAr={isRTL}
+          subbedOnIds={subbedOnIds} cardMap={cardMap}
+          goalMap={goalMap} assistMap={assistMap} captainSet={captainSet} topRaterIds={topRaterIds}
+        />
       </View>
 
       {/* Coaches */}
@@ -287,9 +598,9 @@ export function MatchLineups({ match }: { match: Match }) {
         <Text style={styles.dividerLabel}>{t('match.coach')}</Text>
       </View>
       <View style={[styles.coachesRow, { flexDirection: rowDir }]}>
-        <CoachCard lineup={isRTL ? away : home} rtl={isRTL} />
+        <CoachCard lineup={home} rtl={isRTL} showAr={isRTL} />
         <View style={styles.subsDivider} />
-        <CoachCard lineup={isRTL ? home : away} rtl={isRTL} />
+        <CoachCard lineup={away} rtl={!isRTL} showAr={isRTL} />
       </View>
     </View>
   );
@@ -346,8 +657,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
 
+  // ── Team name labels on pitch ──
+  pitchTeamLabel: {
+    position: 'absolute',
+    color: 'rgba(255,255,255,0.95)',
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+    maxWidth: 120,
+    zIndex: 1,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  pitchTeamLabelTopLeft: {
+    top: 12,
+    left: 8,
+  },
+  pitchTeamLabelBottomRight: {
+    bottom: 12,
+    right: 8,
+    textAlign: 'right',
+  },
+
   // ── Pitch player dot ──
   pitchDot: { alignItems: 'center', gap: 2 },
+  pitchDotInner: { position: 'relative' },
   pitchCircle: {
     width: 38,
     height: 38,
@@ -360,17 +696,6 @@ const styles = StyleSheet.create({
   },
   circleHome: { borderColor: 'rgba(255,255,255,0.75)' },
   circleAway: { borderColor: colors.gold },
-  pitchPhoto: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  pitchNumber: {
-    color: colors.white,
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 11,
-    lineHeight: 12,
-  },
   pitchName: {
     color: 'rgba(255,255,255,0.9)',
     fontFamily: fontFamily.bodyMedium,
@@ -378,6 +703,113 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: 64,
     lineHeight: 12,
+  },
+  // ── Jersey number badge (top-left of circle) ──
+  jerseyBadge: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    borderRadius: 3,
+    paddingHorizontal: 2,
+    minWidth: 14,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  jerseyText: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 8,
+    lineHeight: 12,
+    fontFamily: fontFamily.bodySemiBold,
+  },
+  captainCircle: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  captainCircleText: {
+    color: '#000',
+    fontSize: 10,
+    lineHeight: 11,
+    fontFamily: fontFamily.bodyBold,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textAlign: 'center',
+  },
+
+  // ── Inline sub-off arrow in player name text (on pitch) ──
+  pitchSubOffArrow: {
+    color: '#EF4444',
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 12,
+  },
+
+  // ── Card badge (bottom-left, same row as rating) ──
+  cardBadge: {
+    position: 'absolute',
+    bottom: 1,
+    left: -3,
+    width: 8,
+    height: 11,
+    borderRadius: 1.5,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.3)',
+  },
+
+  // ── Goal / assist emoji icons (top-right of circle) ──
+  pitchIconsBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    fontSize: 10,
+    lineHeight: 12,
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
+  },
+  // ── Injury badge (bottom-right of circle) ──
+  injuryBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  injuryText: {
+    color: '#E53935',
+    fontSize: 11,
+    lineHeight: 13,
+    fontFamily: fontFamily.bodySemiBold,
+  },
+  cardYellow: { backgroundColor: '#F4C842' },
+  cardRed: { backgroundColor: '#E53935' },
+
+  // ── Rating badge (bottom-center of circle, after FT only) ──
+  ratingBadge: {
+    position: 'absolute',
+    bottom: 1,
+    left: '50%',
+    transform: [{ translateX: -12 }],
+    width: 24,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    borderRadius: 4,
+    alignItems: 'center',
+    paddingVertical: 1,
+  },
+  ratingText: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 8,
+    lineHeight: 10,
   },
 
   // ── Formation labels (outside pitch) ──
@@ -395,29 +827,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Silhouette fallback dots ──
-  siloDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-
-  // ── Pitch overlay icon ──
-  pitchOverlay: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    right: spacing.sm,
-  },
-
   // ── Placeholder ──
   placeholder: {
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.xxl * 2,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
   messageBox: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
   messageTitle: {
@@ -444,6 +859,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    alignItems: 'center',
   },
   dividerLabel: {
     color: colors.textMuted,
@@ -467,14 +883,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     marginBottom: spacing.xs,
   },
-  subsLabel: {
-    color: colors.textMuted,
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: fontSize.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
   subRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -487,23 +895,11 @@ const styles = StyleSheet.create({
     height: 26,
     flexShrink: 0,
   },
-  subPhoto: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-  },
-  subShirt: {
-    width: 26,
-    height: 26,
-    borderRadius: 5,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   subBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
+    flexDirection: 'row',
     backgroundColor: colors.surface,
     borderRadius: 4,
     paddingHorizontal: 2,
@@ -516,16 +912,74 @@ const styles = StyleSheet.create({
     fontSize: 7,
     lineHeight: 11,
   },
-  subNumber: {
-    color: colors.textSecondary,
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: 9,
+  subCaptainCircle: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 1,
+  },
+  subCaptainCircleText: {
+    color: '#000',
+    fontSize: 8,
+    lineHeight: 10,
+    fontFamily: fontFamily.bodyBold,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textAlign: 'center',
+  },
+  subNameRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    overflow: 'hidden',
   },
   subName: {
-    flex: 1,
+    flexShrink: 1,
     color: colors.textPrimary,
     fontFamily: fontFamily.bodyRegular,
     fontSize: 12,
+  },
+  subIndicators: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    flexShrink: 0,
+  },
+  subOnArrow: {
+    color: '#22C55E',
+    fontSize: 14,
+    fontFamily: fontFamily.bodySemiBold,
+    lineHeight: 17,
+    flexShrink: 0,
+  },
+  subCardBadge: {
+    width: 7,
+    height: 10,
+    borderRadius: 1,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.3)',
+  },
+  subInjuryBadge: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subInjuryText: {
+    color: '#E53935',
+    fontSize: 10,
+    lineHeight: 12,
+    fontFamily: fontFamily.bodySemiBold,
+  },
+  subIcons: {
+    fontSize: 11,
+    lineHeight: 14,
   },
 
   // ── Coach ──
@@ -537,16 +991,6 @@ const styles = StyleSheet.create({
   coachCard: {
     flex: 1,
     gap: 3,
-  },
-  coachPhoto: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-  },
-  coachPhotoFallback: {
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   coachName: {
     color: colors.textPrimary,

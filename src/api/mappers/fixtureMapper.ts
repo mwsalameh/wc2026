@@ -71,11 +71,32 @@ function mapEvent(raw: any, homeTeamId: number): MatchEvent {
     assistId: raw.assist?.id ?? null,
     type: raw.type ?? '',
     detail: raw.detail ?? '',
+    comments: raw.comments ?? null,
   };
+}
+
+function calcFirstHalfAddedTime(raw: any): number | null {
+  const firstStart: number | null = raw.fixture?.periods?.first ?? null;
+  const secondStart: number | null = raw.fixture?.periods?.second ?? null;
+  if (!firstStart || !secondStart || secondStart <= firstStart) return null;
+  // Total gap = 45-min first half + added time + ~15-min break
+  const totalSeconds = secondStart - firstStart;
+  const playingSeconds = totalSeconds - 15 * 60;
+  const added = Math.floor(playingSeconds / 60) - 45;
+  return added > 0 ? added : null;
 }
 
 export function mapFixture(raw: any): Match {
   const homeTeamId = raw.teams?.home?.id ?? 0;
+  const rawReferee: string | null = raw.fixture?.referee ?? null;
+  const referee = rawReferee
+    ? (() => {
+        const commaIdx = rawReferee.lastIndexOf(', ');
+        return commaIdx !== -1
+          ? { name: rawReferee.slice(0, commaIdx), country: rawReferee.slice(commaIdx + 2) }
+          : { name: rawReferee, country: '' };
+      })()
+    : undefined;
   return {
     id: raw.fixture.id,
     homeTeam: mapTeamRef(raw.teams.home),
@@ -88,7 +109,8 @@ export function mapFixture(raw: any): Match {
     score: mapScore(raw),
     groupId: extractGroupId(raw.league?.round ?? ''),
     round: ROUND_MAP[raw.league?.round] ?? 'Group Stage',
-    referee: raw.fixture?.referee ?? undefined,
+    referee,
+    firstHalfAddedTime: calcFirstHalfAddedTime(raw), // null = computed but no data; undefined = old cache
     events: Array.isArray(raw.events)
       ? raw.events.map((e: any) => mapEvent(e, homeTeamId))
       : [],

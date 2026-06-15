@@ -7,6 +7,8 @@ export interface Player {
   position: string;
   photo?: string;
   grid?: string;
+  captain?: boolean;
+  injured?: boolean;
 }
 
 export interface Coach {

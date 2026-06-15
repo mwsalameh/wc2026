@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
@@ -22,7 +23,10 @@ function GoldenBootCard() {
   const { t } = useTranslation();
   const { rowDir, isRTL, textAlign } = useRTL();
   const { data: scorers, isLoading } = useTopScorers();
-  const leader = scorers?.[0];
+  const leader = useMemo(
+    () => scorers?.filter((p) => p.goals > 0).sort((a, b) => b.goals - a.goals)[0],
+    [scorers]
+  );
   const teamName = useTeamName(leader?.teamName ?? '');
 
   return (

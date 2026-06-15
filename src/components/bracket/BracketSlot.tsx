@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, spacing, radius } from '@/constants/theme';
 import { useBracketStore } from '@/store/bracketStore';
 import { useTeamNavigation } from '@/hooks/useTeamNavigation';
+import { isFavoriteTeam } from '@/constants/favoriteTeam';
 import type { MatchStatus } from '@/types/match';
 
 export interface BracketSlotData {
@@ -107,6 +108,7 @@ function TeamLine({
   highlighted: boolean;
   onTeamPress?: () => void;
 }) {
+  const isJordan = isFavoriteTeam(label);
   return (
     <Pressable style={styles.teamLine} onPress={onTeamPress} disabled={!onTeamPress}>
       {logo ? (
@@ -114,11 +116,12 @@ function TeamLine({
       ) : (
         <View style={styles.logoPlaceholder} />
       )}
-      <Text style={[styles.teamLabel, highlighted && styles.teamLabelHighlighted]} numberOfLines={1}>
+      <Text style={[styles.teamLabel, (highlighted || isJordan) && styles.teamLabelHighlighted]} numberOfLines={1}>
         {label}
       </Text>
+      {isJordan && <Text style={styles.bracketStar}>★</Text>}
       {hasScore && (
-        <Text style={[styles.score, highlighted && styles.scoreHighlighted]}>
+        <Text style={[styles.score, (highlighted || isJordan) && styles.scoreHighlighted]}>
           {score ?? 0}
         </Text>
       )}
@@ -170,6 +173,12 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   scoreHighlighted: { color: colors.gold },
+  bracketStar: {
+    color: colors.gold,
+    fontSize: 8,
+    lineHeight: 12,
+    flexShrink: 0,
+  },
 
   // Dividers
   dividerSimple: {

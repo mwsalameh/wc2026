@@ -57,9 +57,9 @@ export function TeamsTab() {
     );
   }
 
-  const byGoalsFor = [...teams].sort((a, b) => b.goalsFor - a.goalsFor).slice(0, 10);
-  const byGoalsAgainst = [...teams].sort((a, b) => b.goalsAgainst - a.goalsAgainst).slice(0, 10);
-  const byGD = [...teams].sort((a, b) => b.goalDifference - a.goalDifference).slice(0, 10);
+  const byGoalsFor = [...teams].filter((t) => t.goalsFor >= 1).sort((a, b) => b.goalsFor - a.goalsFor).slice(0, 10);
+  const byGoalsAgainst = [...teams].filter((t) => t.goalsAgainst >= 1).sort((a, b) => b.goalsAgainst - a.goalsAgainst).slice(0, 10);
+  const byGD = [...teams].filter((t) => t.goalDifference !== 0).sort((a, b) => b.goalDifference - a.goalDifference).slice(0, 10);
   const byCleanSheets = [...teams].filter((t) => t.cleanSheets > 0).sort((a, b) => b.cleanSheets - a.cleanSheets).slice(0, 10);
 
   return (
@@ -69,6 +69,7 @@ export function TeamsTab() {
           <TeamStatRow
             key={team.teamId}
             rank={i + 1}
+            teamId={team.teamId}
             teamName={team.teamName}
             teamLogo={team.teamLogo}
             value={team.goalsFor}
@@ -82,6 +83,7 @@ export function TeamsTab() {
           <TeamStatRow
             key={team.teamId}
             rank={i + 1}
+            teamId={team.teamId}
             teamName={team.teamName}
             teamLogo={team.teamLogo}
             value={team.goalsAgainst}
@@ -96,6 +98,7 @@ export function TeamsTab() {
           <TeamStatRow
             key={team.teamId}
             rank={i + 1}
+            teamId={team.teamId}
             teamName={team.teamName}
             teamLogo={team.teamLogo}
             value={formatGD(team.goalDifference)}
@@ -111,6 +114,7 @@ export function TeamsTab() {
             <TeamStatRow
               key={team.teamId}
               rank={i + 1}
+              teamId={team.teamId}
               teamName={team.teamName}
               teamLogo={team.teamLogo}
               value={team.cleanSheets}

@@ -1,15 +1,27 @@
 import { QueryClient } from '@tanstack/react-query';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
+      retry: (failureCount, error) => {
+        // Never retry a budget-blocked request — it will fail again immediately
+        if ((error as Error)?.message === 'BUDGET_LIMIT_REACHED') return false;
+        return failureCount < 2;
+      },
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       networkMode: 'offlineFirst',
       staleTime: 5 * 60 * 1000,
       gcTime: 24 * 60 * 60 * 1000,
     },
   },
+});
+
+export const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'wc2026-query-cache',
+  throttleTime: 2000,
 });
 
 export const STALE_TIMES = {
@@ -22,6 +34,7 @@ export const STALE_TIMES = {
   PLAYER_STATS: 12 * 60 * 60 * 1000,
   SQUAD: 24 * 60 * 60 * 1000,
   FIXTURE_PLAYERS: 6 * 60 * 60 * 1000,
+  PLAYER_DETAIL: 24 * 60 * 60 * 1000,
 } as const;
 
 export const QUERY_KEYS = {
@@ -39,4 +52,5 @@ export const QUERY_KEYS = {
   squadByTeam: (teamId: number) => ['squad', teamId] as const,
   coachByTeam: (teamId: number) => ['coach', teamId] as const,
   fixturePlayers: (id: number) => ['fixturePlayers', id] as const,
+  playerById: (id: number) => ['player', id] as const,
 } as const;

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useRTL } from '@/hooks/useRTL';
+import { isFavoriteTeam } from '@/constants/favoriteTeam';
 import type { Standing } from '@/types/group';
 
 interface StandingsRowProps {
@@ -20,6 +21,7 @@ export function StandingsRow({ standing, isLast }: StandingsRowProps) {
   const { team, position, played, won, drawn, lost, goalDifference, points, qualified } = standing;
   const teamName = useTeamName(team.name);
   const { rowDir, isRTL, textAlign } = useRTL();
+  const isJordan = isFavoriteTeam(team.name);
 
   const qualifiedColor =
     qualified === 'direct' ? colors.win :
@@ -35,10 +37,13 @@ export function StandingsRow({ standing, isLast }: StandingsRowProps) {
       {team.logoUrl ? (
         <Image source={{ uri: team.logoUrl }} style={styles.logo} resizeMode="contain" />
       ) : <View style={styles.logo} />}
-      <Text
-        style={[styles.name, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0, textAlign }]}
-        numberOfLines={1}
-      >{teamName}</Text>
+      <View style={[styles.nameRow, { flexDirection: isRTL ? 'row-reverse' : 'row', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>
+        <Text
+          style={[styles.name, isJordan && styles.nameFavorite, { textAlign }]}
+          numberOfLines={1}
+        >{teamName}</Text>
+        {isJordan && <Text style={styles.starIcon}>★</Text>}
+      </View>
       <Stat value={played} />
       <Stat value={won} />
       <Stat value={drawn} />
@@ -77,11 +82,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     textAlign: 'center',
   },
+  nameRow: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 3,
+  },
   name: {
     flex: 1,
     color: colors.textPrimary,
     fontFamily: fontFamily.bodyMedium,
     fontSize: fontSize.small,
+  },
+  nameFavorite: {
+    color: colors.gold,
+    fontFamily: fontFamily.bodySemiBold,
+  },
+  starIcon: {
+    color: colors.gold,
+    fontSize: 9,
+    lineHeight: 14,
+    flexShrink: 0,
   },
   stat: {
     width: COL.stat,

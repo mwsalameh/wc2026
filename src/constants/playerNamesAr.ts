@@ -144,6 +144,17 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Evanilson': 'إيفانيلسون',
   'Dudu': 'دودو',
   'Igor Jesus': 'إيغور جيسوس',
+  'Weverton': 'ويفيرتون',
+  'Bremer': 'بريمير',
+  'Gleison Bremer': 'بريمير',
+  'Roger Ibanez': 'روجر إيبانيز',
+  'Roger Ibañez': 'روجر إيبانيز',
+  'Douglas Santos': 'دوغلاس سانتوس',
+  'Danilo Santos': 'دانيلو سانتوس',
+  'Luiz Henrique': 'لويز إنريكي',
+  'Igor Thiago': 'إيغور تياغو',
+  'Matheus Cunha': 'ماتيوس كونيا',
+  'Rayan': 'رايان',
 
   // ── Argentina ────────────────────────────────────────────────────────────────
   'Lionel Messi': 'ليونيل ميسي',
@@ -375,7 +386,7 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Hakim Ziyech': 'حكيم زياش',
   'Youssef En-Nesyri': 'يوسف النصيري',
   'Nayef Aguerd': 'نايف أكرد',
-  'Sofyan Amrabat': 'صفيان أمرابط',
+  'Sofyan Amrabat': 'سفيان أمرابط',
   'Noussair Mazraoui': 'نصير مزراوي',
   'Romain Saiss': 'رومان سايس',
   'Romain Saïss': 'رومان سايس',
@@ -879,7 +890,6 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Mousa Al-Tamari': 'موسى التعمري',
 
   // ── Iraq ─────────────────────────────────────────────────────────────────────
-  'Graham Arnold': 'غراهام أرنولد',
   // Goalkeepers
   'Ahmed Basil': 'أحمد باسل',
   'Aymen Hussein': 'أيمن حسين',
@@ -926,8 +936,6 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Ali Yousif Hashim': 'علي يوسف هاشم',
 
   // ── Saudi Arabia ──────────────────────────────────────────────────────────────
-  'Georgios Donis': 'جورجيوس دونيس',
-  'G. Donis': 'جورجيوس دونيس',
   // Exact API keys
   'Nawaf Al Aqidi': 'نواف العقيدي',
   'Ahmed Al Kassar': 'أحمد الكسار',
@@ -958,22 +966,15 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   // User-spelling variants
   'Nawaf Al-Aqidi': 'نواف العقيدي',
   'Ahmed Al-Kassar': 'أحمد الكسار',
-  'Mohammed Al-Owais': 'محمد العويس',
   'Mohammed Abu Al-Shamat': 'محمد أبو الشامات',
   'Khalid Al-Ghannam': 'خالد الغنام',
   'Moteb Al-Harbi': 'متعب الحربي',
-  'Abdulelah Al-Amri': 'عبد الإله العمري',
-  'Hassan Al-Tambakti': 'حسان تمبكتي',
   'Jehad Thikri': 'جهاد ذكري',
-  'Nasser Al-Dawsari': 'ناصر الدوسري',
   'Alaa Al-Hejji': 'علاء الحجي',
   'Ziyad Al-Johani': 'زياد الجهني',
   'Musab Al-Juwayr': 'مصعب الجوير',
   'Abdullah Al-Khaibari': 'عبد الله الخيبري',
   'Firas Al-Buraikan': 'فراس البريكان',
-  'Salem Al-Dawsari': 'سالم الدوسري',
-  'Abdullah Al-Hamdan': 'عبد الله الحمدان',
-  'Saleh Al-Shehri': 'صالح الشهري',
 
   // ── Qatar ─────────────────────────────────────────────────────────────────────
   'Julen Lopetegui': 'جولين لوبيتيغي',
@@ -982,25 +983,18 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Mahmud Abunada': 'محمود أبو ندى',
   'Meshaal Barsham': 'مشعل برشم',
   'Salah Zakaria': 'صلاح زكريا',
-  'Homam Ahmed': 'همام أحمد',
   'Sultan Al Braik': 'سلطان البريك',
   'Jassem Gaber': 'جاسم جابر',
   'Boualem Khoukhi': 'بوعلام خوخي',
   'Lucas Mendes': 'لوكاس مينديز',
-  'Pedro Miguel': 'بيدرو ميغيل',
-  'Assim Madibo': 'عاصم ماديبو',
   'Ahmed Al Ganehi': 'أحمد الجانحي',
   'Abdulaziz Hatem': 'عبد العزيز حاتم',
-  'Karim Boudiaf': 'كريم بوضياف',
   'Ahmed Fathi': 'أحمد فتحي',
   'Hassan Al Haydos': 'حسان الهيدوس',
   'Mohamed Al Manai': 'محمد المناعي',
-  'Akram Afif': 'أكرم عفيف',
   'Ahmed Alaa': 'أحمد علاء الدين',
-  'Almoez Ali': 'المعز علي',
   'Edmilson Junior': 'إدميلسون جونيور',
   'Tahsin Jamshid': 'تحسين محمد',
-  'Mohammed Muntari': 'محمد مونتاري',
   // Abbreviated-name fallbacks (tier-4 last-name lookup)
   'Hashmi Al Hussain': 'الهاشمي الحسين',
   'Al-Hashmi Al-Hussain': 'الهاشمي الحسين',
@@ -1042,8 +1036,6 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Trézéguet': 'محمود حسن تريزيغيه',
   'Ahmed Zizo': 'أحمد سيد زيزو',
   'Ibrahim Adel': 'إبراهيم عادل',
-  'Omar Marmoush': 'عمر مرموش',
-  'Mohamed Salah': 'محمد صلاح',
   // Abbreviated-name fallbacks (tier-4 last-name lookup)
   'Hamza Abdelkarim': 'حمزة عبد الكريم',
   // User-spelling variants
@@ -1051,11 +1043,9 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Ramy Rabia': 'رامي ربيعة',
   'Mohamed Alaa': 'محمد علاء',
   'Tarek Alaa': 'طارق علاء',
-  'Hamdi Fathi': 'حمدي فتحي',
   'Mohannad Lasheen': 'مهند لاشين',
   'Mostafa Ziko': 'مصطفى زيكو',
   'Nabil Emad': 'نبيل عماد',
-  'Ahmed Sayed Zizo': 'أحمد سيد زيزو',
   'Mahmoud Hassan Trezeguet': 'محمود حسن تريزيغيه',
   'Haitham Hassan': 'هيثم حسن',
 
@@ -1088,7 +1078,6 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Fares Ghedjemis': 'فارس غدجيميس',
   'Amine Gouiri': 'أمين غويري',
   'Anis Hadj-Moussa': 'أنيس حاج موسى',
-  'Riyad Mahrez': 'رياض محرز',
   // Extra players from user JSON not in current API squad
   'Abdellatif Ramdane': 'عبد اللطيف رمضان',
   'Mehdi Dorval': 'مهدي دورفال',
@@ -1102,17 +1091,13 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Ali Abdi': 'علي العابدي',
   'Adem Arous': 'آدم العروس',
   'Mohamed Amine Ben Hmida': 'محمد أمين بن حميدة',
-  'Dylan Bronn': 'ديلان برون',
-  'Montassar Talbi': 'منتصر الطالبي',
   'Moutaz Neffati': 'معتز النفاتي',
   'Omar Rekik': 'عمر الرقيق',
   'Raed Chikhaoui': 'رائد الشخاوي',
   'Yan Valery': 'يان فاليري',
-  'Ellyes Skhiri': 'إلياس السخيري',
   'Anis Ben Slimane': 'أنيس بن سليمان',
   'Elias Achouri': 'إلياس العاشوري',
   'Hadj Mahmoud': 'الحاج محمود',
-  'Hannibal Mejbri': 'حنبعل المجبري',
   'Mortadha Ben Ouanes': 'مرتضى بن وناس',
   'Rani Khedira': 'راني خضيرة',
   'Elias Saad': 'إلياس سعد',
@@ -1130,27 +1115,20 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Abdelmouhib Chamakh': 'عبد المهيب الشماخ',
 
   // ── Morocco ───────────────────────────────────────────────────────────────────
-  'Mohamed Ouahbi': 'محمد وهبي',
   'M. Ouahbi': 'محمد وهبي',
   // Direct keys for conflict/reversed-name cases
   'C. Talbi': 'شمس الدين طالبي',
   'Gessime Yassine': 'ياسين جسيم',
   'Brahim Diaz': 'إبراهيم دياز',
   // Full names — tier-4 LASTNAME index resolves "X. Lastname" API abbreviations
-  'Yassine Bounou': 'ياسين بونو',
   'Munir Mohamedi': 'منير المحمدي',
   'Ahmed Reda Tagnaouti': 'أحمد رضا التكناوتي',
-  'Achraf Hakimi': 'أشرف حكيمي',
-  'Noussair Mazraoui': 'نصير مزراوي',
-  'Nayef Aguerd': 'نايف أكرد',
   'Chadi Riad': 'شادي رياض',
   'Issa Diop': 'عيسى ديوب',
   'Anass Salah-Eddine': 'أنس صلاح الدين',
   'Zakaria El Ouahdi': 'زكرياء الواحدي',
   'Redouane Halhal': 'رضوان حلاحل',
   'Youssef Belammari': 'يوسف بلعمري',
-  'Sofyan Amrabat': 'سفيان أمرابط',
-  'Azzedine Ounahi': 'عز الدين أوناحي',
   'Neil El Aynaoui': 'نيل العيناوي',
   'Bilal El Khannouss': 'بلال الخنوس',
   'Ismael Saibari': 'إسماعيل الصيباري',
@@ -1160,8 +1138,18 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Abdessamad Ezzalzouli': 'عبد الصمد الزلزولي',
   'Soufiane Rahimi': 'سفيان رحيمي',
   'Chemsdine Talbi': 'شمس الدين طالبي',
+  'Chamseddine Talbi': 'شمس الدين طالبي',
+  'Chems-Eddine Talbi': 'شمس الدين طالبي',
   'Yassine Gessime': 'ياسين جسيم',
   'Ayoub Amaimouni': 'أيوب أمعيموني',
+  'Ayoube Amaimouni Echghouyab': 'أيوب أمعيموني',
+  'Munir El Kajoui': 'منير الكاجوي',
+  'Marwane Saadane': 'مروان سعدان',
+  'Amine Sbai': 'أمين سباي',
+  // Hyphen-vs-space variants for API inconsistency
+  'Youssef En Nesyri': 'يوسف النصيري',
+  'Anass Salah Eddine': 'أنس صلاح الدين',
+  'Yahia Attiyat Allah': 'يحيى عطية الله',
 
 };
 
@@ -1303,5 +1291,8 @@ export function getPlayerNameAr(englishName: string): string {
   }
 
   // Tier 5: phonetic transliteration — covers any player not in the dictionary
+  if (__DEV__) {
+    console.warn('[playerNamesAr] MISS — falling to transliteration:', JSON.stringify(englishName));
+  }
   return transliterateToArabic(englishName);
 }

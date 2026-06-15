@@ -14,7 +14,7 @@ import { MatchLineups } from '@/components/match/MatchLineups';
 import { MatchStats } from '@/components/match/MatchStats';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import { LangButton } from '@/components/ui/ScreenHeader';
+import { HomeButton } from '@/components/ui/ScreenHeader';
 
 function MatchDetailSkeleton() {
   return (
@@ -72,7 +72,7 @@ export default function MatchDetailScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.white} />
         </Pressable>
-        <LangButton />
+        <HomeButton />
       </View>
 
       {isLoading && !match && <MatchDetailSkeleton />}
