@@ -301,12 +301,12 @@ const REFEREE_DATA: Record<string, RefereeInfo> = {
     countryCode: 'BR',
   },
   'Yael Falcon Perez': {
-    nameAr: 'يلي فالكون بيريز',
+    nameAr: 'يائيل فالكون بيريز',
     nationality: 'Argentine',
     countryCode: 'AR',
   },
   'Yael Falcón Pérez': {
-    nameAr: 'يلي فالكون بيريز',
+    nameAr: 'يائيل فالكون بيريز',
     nationality: 'Argentine',
     countryCode: 'AR',
   },
