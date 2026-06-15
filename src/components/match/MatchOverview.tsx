@@ -8,7 +8,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useRTL } from '@/hooks/useRTL';
 import { getVenueNameAr, getCityNameAr, getVenueCountry } from '@/constants/venueNamesAr';
 import { getPlayerNameAr } from '@/constants/playerNamesAr';
-import { getRefereeInfo, getRefereeNationalityAr, getFlagEmoji, getCountryCodeFromName, getCountryNationalityAr } from '@/constants/refereeData';
+import { getRefereeInfo, getRefereeNationalityAr, getFlagEmoji, getCountryCodeFromName, getCountryNationalityAr, transliterateToArabic } from '@/constants/refereeData';
 import type { Match, MatchEvent } from '@/types/match';
 
 // ─── Info row ─────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ function RefereeRow({
   // When no Arabic name is available, wrap the Latin name in LTR embedding marks
   // so it renders correctly inside an RTL string instead of appearing garbled.
   const displayName = isAr
-    ? (info?.nameAr ?? `‪${referee.name}‬`)
+    ? (info?.nameAr ?? transliterateToArabic(referee.name))
     : (info?.nameEn ?? referee.name);
   const nationality = info
     ? (isAr ? getRefereeNationalityAr(info) : info.nationality)
@@ -49,7 +49,7 @@ function RefereeRow({
   const flag = flagCode ? getFlagEmoji(flagCode) : '';
 
   if (__DEV__ && !info) {
-    console.warn('[refereeData] MISS — no entry for:', JSON.stringify(referee.name), 'country:', JSON.stringify(referee.country));
+    console.warn('[refereeData] MISS — no entry for:', JSON.stringify(referee.name), 'country:', JSON.stringify(referee.country), '→ auto-ar:', transliterateToArabic(referee.name));
   }
 
   // Flag uses the same separator as other items so it anchors correctly in RTL

@@ -85,6 +85,80 @@ export function getRefereeNameAr(name: string): string | null {
   return REFEREE_DATA[name]?.nameAr ?? null;
 }
 
+// ─── Automatic Latin → Arabic phonetic transliteration ────────────────────────
+// Used as a fallback when a referee has no manual entry in REFEREE_DATA.
+// Handles Spanish, Portuguese, French, English, and most other Latin-script names.
+
+const DIGRAPHS: Record<string, string> = {
+  'sh': 'ش', 'ch': 'تش', 'ph': 'ف', 'th': 'ث',
+  'gh': 'غ', 'ck': 'ك', 'qu': 'ك', 'll': 'ي',
+  'sz': 'ش', 'cz': 'تش', 'ts': 'تس', 'tz': 'تز', 'wh': 'و',
+};
+
+const INITIAL_VOWELS: Record<string, string> = {
+  'a': 'أ', 'e': 'إي', 'i': 'إي', 'o': 'أو', 'u': 'أو',
+};
+
+const MEDIAL_VOWELS: Record<string, string> = {
+  'a': 'ا', 'e': 'ي', 'i': 'ي', 'o': 'و', 'u': 'و',
+};
+
+const CONSONANTS: Record<string, string> = {
+  'b': 'ب', 'd': 'د', 'f': 'ف', 'h': 'ه', 'j': 'خ',
+  'k': 'ك', 'l': 'ل', 'm': 'م', 'n': 'ن', 'p': 'ب',
+  'q': 'ك', 'r': 'ر', 's': 'س', 't': 'ت', 'v': 'ف',
+  'w': 'و', 'x': 'كس', 'y': 'ي', 'z': 'ز',
+};
+
+function transliterateWord(word: string): string {
+  // Strip accents (é→e, ñ→n, ü→u …) so we work with plain ASCII
+  const s = word.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let out = '';
+  let i = 0;
+
+  while (i < s.length) {
+    const c = s[i];
+    const next = s[i + 1] ?? '';
+    const isFirst = out === '';
+
+    // Double consonant → write once (gemination)
+    if (c === next && !'aeiou'.includes(c)) {
+      out += CONSONANTS[c] ?? c;
+      i += 2;
+      continue;
+    }
+
+    // Two-character digraph
+    const two = c + next;
+    if (DIGRAPHS[two]) {
+      out += DIGRAPHS[two];
+      i += 2;
+      continue;
+    }
+
+    // Vowel
+    if ('aeiou'.includes(c)) {
+      out += isFirst ? (INITIAL_VOWELS[c] ?? 'أ') : (MEDIAL_VOWELS[c] ?? 'ا');
+      i++;
+      continue;
+    }
+
+    // Context-sensitive: c → س before e/i, otherwise ك
+    if (c === 'c') { out += 'ei'.includes(next) ? 'س' : 'ك'; i++; continue; }
+    // Context-sensitive: g → خ before e/i (Spanish/French), otherwise غ
+    if (c === 'g') { out += 'ei'.includes(next) ? 'خ' : 'غ'; i++; continue; }
+
+    out += CONSONANTS[c] ?? c;
+    i++;
+  }
+
+  return out;
+}
+
+export function transliterateToArabic(name: string): string {
+  return name.split(/\s+/).map(transliterateWord).join(' ');
+}
+
 export function getRefereeInfo(name: string, country?: string): RefereeInfo | null {
   // 1. Exact match
   if (REFEREE_DATA[name]) return REFEREE_DATA[name];
@@ -297,6 +371,11 @@ const REFEREE_DATA: Record<string, RefereeInfo> = {
   // ── South America ────────────────────────────────────────────────────────────
   'Wilton Sampaio': {
     nameAr: 'ويلتون سامبايو',
+    nationality: 'Brazilian',
+    countryCode: 'BR',
+  },
+  'Ramon Abatti Abel': {
+    nameAr: 'رامون أباتي آبيل',
     nationality: 'Brazilian',
     countryCode: 'BR',
   },
