@@ -11,6 +11,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useTeamName } from '@/hooks/useTeamName';
 import { usePlayerDetail } from '@/hooks/usePlayerDetail';
 import { useTopScorers } from '@/hooks/usePlayerStats';
+import { usePotmStats } from '@/hooks/useBestPlayer';
 import { getPlayerNameAr } from '@/constants/playerNamesAr';
 import { getClubNameAr } from '@/constants/clubNamesAr';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
@@ -74,7 +75,7 @@ function StatBox({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-function WcStatsSection({ stats, t, isRTL }: { stats: PlayerWcStats; t: (k: string) => string; isRTL: boolean }) {
+function WcStatsSection({ stats, t, isRTL, potmAwards }: { stats: PlayerWcStats; t: (k: string) => string; isRTL: boolean; potmAwards: number }) {
   const hasExtra = stats.shotsOnTarget > 0 || stats.yellowCards > 0 || stats.redCards > 0 || stats.rating;
   const rating = stats.rating ? parseFloat(stats.rating).toFixed(1) : null;
 
@@ -91,6 +92,7 @@ function WcStatsSection({ stats, t, isRTL }: { stats: PlayerWcStats; t: (k: stri
         <StatBox value={stats.goals} label={t('player.goals')} />
         <StatBox value={stats.assists ?? 0} label={t('player.assists')} />
         <StatBox value={stats.minutes} label={t('player.minutes')} />
+        <StatBox value={potmAwards} label={t('player.potmAwards')} />
       </View>
 
       {/* Secondary stats row */}
@@ -126,6 +128,7 @@ export default function PlayerScreen() {
   const playerId = parseInt(id, 10);
   const { data: detail, isLoading, isError } = usePlayerDetail(playerId);
   const { data: allFixtureStats } = useTopScorers();
+  const { awardLeaders } = usePotmStats();
 
   const profile = detail?.profile;
   const wcStats = detail?.wcStats;
@@ -136,6 +139,11 @@ export default function PlayerScreen() {
   const aggregatedStats = useMemo(
     () => allFixtureStats?.find((p) => p.playerId === playerId),
     [allFixtureStats, playerId]
+  );
+
+  const potmAwards = useMemo(
+    () => awardLeaders.find((p) => p.playerId === playerId)?.awards ?? 0,
+    [awardLeaders, playerId]
   );
 
   // Prefer API stats when they have real appearances; fall back to fixture aggregation.
@@ -265,7 +273,7 @@ export default function PlayerScreen() {
 
           {/* WC stats */}
           {effectiveWcStats && effectiveWcStats.appearances > 0 ? (
-            <WcStatsSection stats={effectiveWcStats} t={t} isRTL={isRTL} />
+            <WcStatsSection stats={effectiveWcStats} t={t} isRTL={isRTL} potmAwards={potmAwards} />
           ) : profile ? (
             <View style={styles.noStatsBox}>
               <Text style={[styles.noStatsText, { textAlign: 'center' }]}>{t('player.noStats')}</Text>

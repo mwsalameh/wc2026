@@ -52,11 +52,6 @@ function extractBestPlayer(
     }
   }
 
-  if (__DEV__ && !officialPlayerId && fallback) {
-    console.warn(
-      `[officialPotm] No admin selection for fixture — showing fallback: "${fallback.name}" (${fallback.rating.toFixed(1)})`
-    );
-  }
 
   return fallback;
 }

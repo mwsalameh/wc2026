@@ -3,6 +3,7 @@ import { useQueries } from '@tanstack/react-query';
 import { fetchFixturePlayers } from '@/api/fixtures';
 import { useAllFixtures } from '@/hooks/useFixtures';
 import { QUERY_KEYS, STALE_TIMES } from '@/config/queryClient';
+import type { Match } from '@/types/match';
 import type { PlayerStat, TeamStat } from '@/types/playerStats';
 
 // ─── fixture/player aggregation ─────────────────────────────────────────────
@@ -13,46 +14,64 @@ import type { PlayerStat, TeamStat } from '@/types/playerStats';
 function useFixturePlayerResults() {
   const { data: fixtures } = useAllFixtures();
 
-  const completedIds = useMemo(
-    () =>
-      (fixtures ?? [])
-        .filter((m) => ['FT', 'AET', 'PEN'].includes(m.status))
-        .map((m) => m.id),
+  const completedFixtures = useMemo(
+    () => (fixtures ?? []).filter((m) => ['FT', 'AET', 'PEN'].includes(m.status)),
     [fixtures]
   );
 
   const results = useQueries({
-    queries: completedIds.map((id) => ({
-      queryKey: QUERY_KEYS.fixturePlayers(id),
-      queryFn: () => fetchFixturePlayers(id),
+    queries: completedFixtures.map((f) => ({
+      queryKey: QUERY_KEYS.fixturePlayers(f.id),
+      queryFn: () => fetchFixturePlayers(f.id),
       staleTime: STALE_TIMES.FIXTURE_PLAYERS,
     })),
   });
 
-  return { results, completedIds };
+  return { results, completedFixtures };
 }
 
 // Aggregate per-match player statistics into cross-tournament totals.
 // Every player who appeared in any completed match is included — no API cutoff.
-function buildPlayerStats(results: any[], completedIds: number[]): PlayerStat[] {
-  if (completedIds.length === 0) return [];
+function buildPlayerStats(results: any[], completedFixtures: Match[]): PlayerStat[] {
+  if (completedFixtures.length === 0) return [];
 
   const map = new Map<number, PlayerStat>();
 
-  for (const r of results) {
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
     if (!r.data) continue;
+
+    const fixture = completedFixtures[i];
+    // AET/PEN matches run to 120 minutes; group stage and regular KO to 90
+    const matchDuration = ['AET', 'PEN'].includes(fixture?.status) ? 120 : 90;
+    // Players who were substituted off — the API correctly reports their sub minute,
+    // so we don't override it. For non-subbed starters, the API sometimes
+    // underreports (e.g. 84 instead of 90) and we normalise to matchDuration.
+    const substOffIds = new Set(
+      (fixture?.events ?? [])
+        .filter((e) => e.type === 'subst')
+        .map((e) => e.playerId)
+    );
+
     for (const teamData of r.data) {
       for (const p of teamData.players ?? []) {
         const s = p.statistics?.[0];
         if (!s) continue;
 
+        const playerId: number = p.player.id;
+        const rawMinutes: number = s.games?.minutes ?? 0;
+        const isStarter: boolean = s.games?.substitute === false;
+
+        const minutes =
+          isStarter && rawMinutes > 0 && rawMinutes < matchDuration && !substOffIds.has(playerId)
+            ? matchDuration
+            : rawMinutes;
+
         const goals: number = s.goals?.total ?? 0;
         const assists: number = s.goals?.assists ?? 0;
-        const minutes: number = s.games?.minutes ?? 0;
         const yellow: number = s.cards?.yellow ?? 0;
         const red: number = s.cards?.red ?? 0;
         const shots: number = s.shots?.on ?? 0;
-        const playerId: number = p.player.id;
 
         const existing = map.get(playerId);
         if (existing) {
@@ -91,14 +110,14 @@ function buildPlayerStats(results: any[], completedIds: number[]): PlayerStat[] 
 // Returns undefined while the initial load is in progress (shows skeleton),
 // then the full aggregated list once any data arrives.
 function useAllPlayerStats(): { data: PlayerStat[] | undefined; isLoading: boolean } {
-  const { results, completedIds } = useFixturePlayerResults();
+  const { results, completedFixtures } = useFixturePlayerResults();
 
   const data = useMemo(
-    () => buildPlayerStats(results, completedIds),
-    [results, completedIds]
+    () => buildPlayerStats(results, completedFixtures),
+    [results, completedFixtures]
   );
 
-  const isLoading = completedIds.length > 0 && results.some((r) => r.isLoading);
+  const isLoading = completedFixtures.length > 0 && results.some((r) => r.isLoading);
 
   // Stay undefined while loading with no data yet → components show skeleton.
   // Once we have partial data or loading finishes, hand back the array.
