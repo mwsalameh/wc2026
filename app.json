@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wc2026.app",
+      "bundleIdentifier": "com.salameh.wc2026",
       "buildNumber": "1"
     },
     "android": {
@@ -38,16 +38,17 @@
         }
       ],
       "expo-font",
-      "expo-localization",
-      [
-        "expo-background-fetch",
-        {
-          "modes": ["background"]
-        }
-      ]
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e0ffd11b-b71e-49d4-b107-a7d9df40b425"
+      }
+    },
+    "owner": "mohanad_salame"
   }
 }

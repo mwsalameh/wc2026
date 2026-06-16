@@ -25,8 +25,8 @@
     "production": {
       "ios": {
         "appleId": "muhanad.wael.salameh@gmail.com",
-        "ascAppId": "YOUR_ASC_APP_ID",
-        "appleTeamId": "YOUR_TEAM_ID"
+        "ascAppId": "6781015486",
+        "appleTeamId": "P7KDY4QC6K"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
