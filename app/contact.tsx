@@ -29,7 +29,7 @@ export default function ContactScreen() {
   const c = CONTENT[language as 'en' | 'ar'] ?? CONTENT.en;
 
   const handleEmail = () => {
-    Linking.openURL(`mailto:${EMAIL}?subject=WC 2026 App`);
+    Linking.openURL(`mailto:${EMAIL}?subject=WC26 Match Center App`);
   };
 
   return (

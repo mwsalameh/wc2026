@@ -7,7 +7,8 @@
     "statistics": "إحصائيات"
   },
   "home": {
-    "title": "كأس العالم 2026",
+    "title": "WC26",
+    "titleSub": "Match Center",
     "matchesToday": "مباريات اليوم",
     "matchesTomorrow": "مباريات الغد",
     "matchesOn": "مباريات · {{date}}",
@@ -198,6 +199,16 @@
     "privacy": "سياسة الخصوصية",
     "terms": "الشروط والأحكام",
     "contact": "تواصل معنا"
+  },
+  "a11y": {
+    "goBack": "رجوع",
+    "home": "الرئيسية",
+    "info": "معلومات",
+    "openCalendar": "فتح التقويم",
+    "clearFilter": "إعادة ضبط الفلتر",
+    "clearSearch": "مسح البحث",
+    "switchLanguage": "تغيير اللغة",
+    "viewTeam": "عرض {{name}}"
   },
   "language": "English"
 }

@@ -20,7 +20,7 @@ interface Content {
 const CONTENT: Record<'en' | 'ar', Content> = {
   en: {
     updated: 'Last updated: June 2026',
-    intro: 'WC 2026 is designed with your privacy in mind. We do not collect, store, or share any personal information.',
+    intro: 'WC26 Match Center is designed with your privacy in mind. We do not collect, store, or share any personal information.',
     sections: [
       {
         title: 'Information We Collect',
@@ -46,7 +46,7 @@ const CONTENT: Record<'en' | 'ar', Content> = {
   },
   ar: {
     updated: 'آخر تحديث: يونيو 2026',
-    intro: 'تطبيق كأس العالم 2026 مُصمَّم مع مراعاة خصوصيتك. نحن لا نجمع أي بيانات شخصية أو نخزنها أو نشاركها.',
+    intro: 'تطبيق WC26 Match Center مُصمَّم مع مراعاة خصوصيتك. نحن لا نجمع أي بيانات شخصية أو نخزنها أو نشاركها.',
     sections: [
       {
         title: 'المعلومات التي نجمعها',

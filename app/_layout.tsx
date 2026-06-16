@@ -24,8 +24,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { queryClient, asyncStoragePersister } from '@/config/queryClient';
 import { applyPersistedLanguage } from '@/store/languageStore';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { installGlobalErrorHandler } from '@/utils/errorLog';
 
 SplashScreen.preventAutoHideAsync();
+installGlobalErrorHandler();
 
 export default function RootLayout() {
   const [langReady, setLangReady] = useState(false);

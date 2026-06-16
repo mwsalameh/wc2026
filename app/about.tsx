@@ -1,13 +1,17 @@
 import { ScrollView, View, Text, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import Constants from 'expo-constants';
 import { useLanguageStore } from '@/store/languageStore';
 import { useRTL } from '@/hooks/useRTL';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants/theme';
 import { BackHeader } from '@/components/ui/BackHeader';
 
+const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+
 const CONTENT = {
   en: {
+    appName: 'WC26 Match Center',
     tagline: 'Your unofficial companion for the 2026 FIFA World Cup',
     featuresTitle: 'Features',
     features: [
@@ -23,9 +27,10 @@ const CONTENT = {
     dataTitle: 'Data Source',
     data: 'Match data provided by API-Football (api-football.com).',
     disclaimer: 'This app is not affiliated with, sponsored by, or endorsed by FIFA or any national football federation.',
-    version: 'Version 1.0.0',
+    version: `Version ${appVersion}`,
   },
   ar: {
+    appName: 'WC26 Match Center',
     tagline: 'رفيقك غير الرسمي لكأس العالم FIFA 2026',
     featuresTitle: 'المميزات',
     features: [
@@ -41,7 +46,7 @@ const CONTENT = {
     dataTitle: 'مصدر البيانات',
     data: 'بيانات المباريات مقدَّمة من API-Football (api-football.com).',
     disclaimer: 'هذا التطبيق غير تابع لـ FIFA أو أي اتحاد كرة قدم وطني، ولا يحظى برعايتهم أو تأييدهم.',
-    version: 'الإصدار 1.0.0',
+    version: `الإصدار ${appVersion}`,
   },
 } as const;
 
@@ -60,8 +65,9 @@ export default function AboutScreen() {
         <View style={styles.heroSection}>
           <View style={styles.logoWrap}>
             <Text style={styles.logoText}>WC</Text>
-            <Text style={styles.logoYear}>2026</Text>
+            <Text style={styles.logoYear}>26</Text>
           </View>
+          <Text style={styles.appName}>{c.appName}</Text>
           <Text style={[styles.tagline, { textAlign }]}>{c.tagline}</Text>
         </View>
 
@@ -135,6 +141,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
     letterSpacing: 1,
+  },
+  appName: {
+    color: colors.textPrimary,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: fontSize.h2,
+    textAlign: 'center',
   },
   tagline: {
     color: colors.textSecondary,

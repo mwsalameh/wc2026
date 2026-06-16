@@ -258,7 +258,7 @@ const potmStyles = StyleSheet.create({
   name: {
     color: colors.textPrimary,
     fontFamily: fontFamily.display,
-    fontSize: fontSize.title,
+    fontSize: fontSize.h1,
   },
   teamRow: {
     flexDirection: 'row',

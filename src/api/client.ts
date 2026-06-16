@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useRequestBudgetStore } from '@/store/requestBudgetStore';
+import { recordError } from '@/utils/errorLog';
 
 const APISPORTS_KEY = process.env.EXPO_PUBLIC_APISPORTS_KEY ?? '';
 
@@ -28,8 +29,11 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error?.message !== 'BUDGET_LIMIT_REACHED' && __DEV__) {
-      console.error('[API] request failed:', error?.config?.url, error?.response?.status, error?.message);
+    if (error?.message !== 'BUDGET_LIMIT_REACHED') {
+      if (__DEV__) {
+        console.error('[API] request failed:', error?.config?.url, error?.response?.status, error?.message);
+      }
+      recordError(error, `api:${error?.config?.url ?? 'unknown'}:${error?.response?.status ?? 'no-response'}`);
     }
     return Promise.reject(error);
   }

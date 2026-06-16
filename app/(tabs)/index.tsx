@@ -133,6 +133,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <ScreenHeader
         title={t('home.title')}
+        subtitle={t('home.titleSub')}
         showInfo
         showLang
         onTitleLongPress={(__DEV__ || isAdmin) ? () => router.push('/admin' as any) : undefined}

@@ -31,7 +31,7 @@ export function TeamStatRow({ rank, teamId, teamName, teamLogo, value, valueLabe
         onPress={teamId ? () => router.push(`/team/${teamId}` as any) : undefined}
         disabled={!teamId}
         hitSlop={8}
-        style={({ pressed }) => [pressed && teamId && { opacity: 0.65 }]}
+        style={({ pressed }) => [pressed && !!teamId && { opacity: 0.65 }]}
       >
         <Image source={{ uri: teamLogo }} style={styles.logo} resizeMode="contain" />
       </Pressable>

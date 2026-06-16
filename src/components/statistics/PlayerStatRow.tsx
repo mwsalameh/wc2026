@@ -33,7 +33,7 @@ export function PlayerStatRow({ rank, playerId, teamId, name, photo, teamName, t
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, { flexDirection: rowDir }, pressed && playerId && styles.pressed]}
+      style={({ pressed }) => [styles.row, { flexDirection: rowDir }, pressed && !!playerId && styles.pressed]}
       onPress={playerId ? () => router.push({ pathname: '/player/[id]', params: { id: playerId, name } }) : undefined}
       disabled={!playerId}
     >
@@ -49,7 +49,7 @@ export function PlayerStatRow({ rank, playerId, teamId, name, photo, teamName, t
               onPress={teamId ? (e) => { e.stopPropagation(); router.push(`/team/${teamId}` as any); } : undefined}
               disabled={!teamId}
               hitSlop={6}
-              style={({ pressed }) => [pressed && teamId && { opacity: 0.65 }]}
+              style={({ pressed }) => [pressed && !!teamId && { opacity: 0.65 }]}
             >
               <Image source={{ uri: teamLogo }} style={styles.teamLogo} resizeMode="contain" />
             </Pressable>

@@ -20,7 +20,7 @@ interface Content {
 const CONTENT: Record<'en' | 'ar', Content> = {
   en: {
     updated: 'Last updated: June 2026',
-    intro: 'By using WC 2026, you agree to the following terms and conditions. Please read them carefully.',
+    intro: 'By using WC26 Match Center, you agree to the following terms and conditions. Please read them carefully.',
     sections: [
       {
         title: 'Personal Use',
@@ -32,7 +32,7 @@ const CONTENT: Record<'en' | 'ar', Content> = {
       },
       {
         title: 'No Affiliation',
-        body: 'WC 2026 is an independent application and is not affiliated with, sponsored by, or endorsed by FIFA, the United States Soccer Federation, Canada Soccer, the Mexican Football Federation, or any national football federation or club.',
+        body: 'WC26 Match Center is an independent application and is not affiliated with, sponsored by, or endorsed by FIFA, the United States Soccer Federation, Canada Soccer, the Mexican Football Federation, or any national football federation or club.',
       },
       {
         title: 'Intellectual Property',
@@ -50,7 +50,7 @@ const CONTENT: Record<'en' | 'ar', Content> = {
   },
   ar: {
     updated: 'آخر تحديث: يونيو 2026',
-    intro: 'باستخدامك لتطبيق كأس العالم 2026، فأنت توافق على الشروط والأحكام التالية. يُرجى قراءتها بعناية.',
+    intro: 'باستخدامك لتطبيق WC26 Match Center، فأنت توافق على الشروط والأحكام التالية. يُرجى قراءتها بعناية.',
     sections: [
       {
         title: 'الاستخدام الشخصي',
@@ -62,7 +62,7 @@ const CONTENT: Record<'en' | 'ar', Content> = {
       },
       {
         title: 'عدم الانتساب',
-        body: 'تطبيق كأس العالم 2026 تطبيق مستقل وغير مرتبط بـ FIFA أو الاتحاد الأمريكي لكرة القدم أو Canada Soccer أو الاتحاد المكسيكي لكرة القدم أو أي اتحاد وطني أو نادٍ، كما أنه لا يحظى برعايتهم أو تأييدهم.',
+        body: 'تطبيق WC26 Match Center تطبيق مستقل وغير مرتبط بـ FIFA أو الاتحاد الأمريكي لكرة القدم أو Canada Soccer أو الاتحاد المكسيكي لكرة القدم أو أي اتحاد وطني أو نادٍ، كما أنه لا يحظى برعايتهم أو تأييدهم.',
       },
       {
         title: 'الملكية الفكرية',

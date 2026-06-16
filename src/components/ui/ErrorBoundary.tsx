@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
+import { recordError } from '@/utils/errorLog';
 
 interface Props {
   children: ReactNode;
@@ -18,9 +19,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    if (__DEV__) {
-      console.error('[ErrorBoundary] uncaught render error:', error);
-    }
+    recordError(error, 'render');
   }
 
   reset = () => this.setState({ hasError: false });

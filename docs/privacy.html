@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — WC26 Match Center</title>
+<style>
+  :root {
+    --background: #020B18;
+    --surface: #0C2338;
+    --border: #1F3D5A;
+    --gold: #F4C842;
+    --text-primary: #FFFFFF;
+    --text-secondary: #CBD5E1;
+    --text-muted: #9AA5B4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .logo {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--gold);
+    margin-bottom: 16px;
+  }
+  .logo .wc {
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .logo .year {
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 8px;
+  }
+  .updated {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0 0 24px;
+  }
+  .lang-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+  .lang-toggle button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .lang-toggle button.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--background);
+  }
+  .intro {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    color: var(--gold);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0 0 8px;
+  }
+  .card p {
+    color: var(--text-primary);
+    font-size: 15px;
+    margin: 0;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 48px;
+  }
+  [dir="rtl"] {
+    text-align: right;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  }
+  .lang-section { display: none; }
+  .lang-section.active { display: block; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="logo">
+        <span class="wc">WC</span>
+        <span class="year">26</span>
+      </div>
+      <h1 id="title">Privacy Policy</h1>
+      <p class="updated" id="updated">Last updated: June 2026</p>
+    </div>
+
+    <div class="lang-toggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">English</button>
+      <button id="btn-ar" onclick="setLang('ar')">العربية</button>
+    </div>
+
+    <section class="lang-section active" id="section-en" dir="ltr" lang="en">
+      <p class="intro">WC26 Match Center is designed with your privacy in mind. We do not collect, store, or share any personal information.</p>
+
+      <div class="card">
+        <h2>Information We Collect</h2>
+        <p>This app does not collect any personal information. No account registration or sign-in is required to use the app.</p>
+      </div>
+
+      <div class="card">
+        <h2>Local Storage</h2>
+        <p>The app stores only your language preference (Arabic or English) locally on your device. This data never leaves your device and is not shared with anyone.</p>
+      </div>
+
+      <div class="card">
+        <h2>Third-Party Services</h2>
+        <p>Match data, team information, and statistics are fetched from API-Football (api-football.com). Their own privacy policy governs how they handle data on their end.</p>
+      </div>
+
+      <div class="card">
+        <h2>Analytics &amp; Tracking</h2>
+        <p>This app does not use any analytics, advertising, or user-tracking services.</p>
+      </div>
+
+      <div class="card">
+        <h2>Contact</h2>
+        <p>For any privacy-related questions, please contact us at: <a href="mailto:muhanad.wael.salameh@gmail.com">muhanad.wael.salameh@gmail.com</a></p>
+      </div>
+    </section>
+
+    <section class="lang-section" id="section-ar" dir="rtl" lang="ar">
+      <p class="intro">تطبيق WC26 Match Center مُصمَّم مع مراعاة خصوصيتك. نحن لا نجمع أي بيانات شخصية أو نخزنها أو نشاركها.</p>
+
+      <div class="card">
+        <h2>المعلومات التي نجمعها</h2>
+        <p>هذا التطبيق لا يجمع أي معلومات شخصية. لا يلزم إنشاء حساب أو تسجيل الدخول لاستخدام التطبيق.</p>
+      </div>
+
+      <div class="card">
+        <h2>التخزين المحلي</h2>
+        <p>يُخزِّن التطبيق فقط تفضيلك للغة (العربية أو الإنجليزية) محلياً على جهازك. هذه البيانات لا تغادر جهازك ولا تُشارَك مع أي جهة.</p>
+      </div>
+
+      <div class="card">
+        <h2>خدمات الطرف الثالث</h2>
+        <p>بيانات المباريات ومعلومات المنتخبات والإحصائيات مقدَّمة من API-Football (api-football.com). تنطبق سياسة الخصوصية الخاصة بهم على البيانات من جانبهم.</p>
+      </div>
+
+      <div class="card">
+        <h2>التحليلات والتتبع</h2>
+        <p>لا يستخدم هذا التطبيق أي خدمات تحليلات أو إعلانات أو تتبع للمستخدمين.</p>
+      </div>
+
+      <div class="card">
+        <h2>تواصل معنا</h2>
+        <p>لأي استفسارات تتعلق بالخصوصية، يُرجى التواصل معنا على: <a href="mailto:muhanad.wael.salameh@gmail.com">muhanad.wael.salameh@gmail.com</a></p>
+      </div>
+    </section>
+
+    <footer id="footer">WC26 Match Center — This app is not affiliated with, sponsored by, or endorsed by FIFA or any national football federation.</footer>
+  </div>
+
+  <script>
+    const STRINGS = {
+      en: {
+        title: 'Privacy Policy',
+        updated: 'Last updated: June 2026',
+        footer: 'WC26 Match Center — This app is not affiliated with, sponsored by, or endorsed by FIFA or any national football federation.',
+      },
+      ar: {
+        title: 'سياسة الخصوصية',
+        updated: 'آخر تحديث: يونيو 2026',
+        footer: 'WC26 Match Center — هذا التطبيق غير تابع لـ FIFA أو أي اتحاد كرة قدم وطني، ولا يحظى برعايتهم أو تأييدهم.',
+      },
+    };
+
+    function setLang(lang) {
+      document.getElementById('section-en').classList.toggle('active', lang === 'en');
+      document.getElementById('section-ar').classList.toggle('active', lang === 'ar');
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+      document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+      document.getElementById('title').textContent = STRINGS[lang].title;
+      document.getElementById('updated').textContent = STRINGS[lang].updated;
+      document.getElementById('footer').textContent = STRINGS[lang].footer;
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    }
+  </script>
+</body>
+</html>

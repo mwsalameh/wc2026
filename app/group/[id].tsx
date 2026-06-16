@@ -36,7 +36,12 @@ export default function GroupDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.header, { flexDirection: rowDir }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.goBack')}
+        >
           <Ionicons
             name={isRTL ? 'arrow-forward' : 'arrow-back'}
             size={24}

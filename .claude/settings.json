@@ -4,7 +4,17 @@
       "Bash(curl -s \"http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true\" -o /tmp/bundle2.js -w \"HTTP %{http_code} size=%{size_download}\\\\n\" --max-time 120)",
       "Bash(git rm *)",
       "Bash(netsh advfirewall *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(find \"c:\\\\Users\\\\Diwan\\\\.claude\\\\projects\" -type f -name \"project-progress.md\" 2>/dev/null | head -5)",
+      "Read(//c/Users/Diwan/.claude/projects/**)",
+      "Bash(grep -rn \"stackTrace\\\\|stack\\\\|err\\\\\\\\.toString\\\\|error\\\\\\\\.toString\\\\|JSON\\\\\\\\.stringify.*err\\\\|JSON\\\\\\\\.stringify.*error\" \"c:\\\\Users\\\\Diwan\\\\wc2026\\\\src\" --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(git -C \"c:\\\\Users\\\\Diwan\\\\wc2026\" log --oneline --all)",
+      "Bash(git -C \"c:\\\\Users\\\\Diwan\\\\wc2026\" log -p --all -- \".env*\")",
+      "Bash(git -C \"c:\\\\Users\\\\Diwan\\\\wc2026\" log --all --format=\"%h %s\" -- app/group/[id].tsx)",
+      "Bash(git check-ignore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)"
     ]
   },
   "enabledPlugins": {

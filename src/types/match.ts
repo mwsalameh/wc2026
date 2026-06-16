@@ -63,7 +63,6 @@ export interface Match {
   status: MatchStatus;
   elapsed?: number;
   extra?: number;
-  firstHalfAddedTime?: number | null;
   score: Score;
   groupId?: string;
   round: TournamentRound;

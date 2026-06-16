@@ -66,6 +66,8 @@ export default function TeamDetailScreen() {
           onPress={() => router.back()}
           hitSlop={12}
           style={[styles.backBtn, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.goBack')}
         >
           <Ionicons
             name={isRTL ? 'arrow-forward' : 'arrow-back'}

@@ -1,5 +1,6 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
 import { useTeamName } from '@/hooks/useTeamName';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function PotmHistoryRow({ entry }: Props) {
+  const { t } = useTranslation();
   const { isRTL, rowDir, textAlign } = useRTL();
   const playerTeamName = useTeamName(entry.teamName);
   const displayName = isRTL ? getPlayerNameAr(entry.name) : entry.name;
@@ -66,6 +68,8 @@ export function PotmHistoryRow({ entry }: Props) {
               router.push(`/team/${entry.homeTeam.id}` as any);
             }}
             hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.viewTeam', { name: entry.homeTeam.name })}
           >
             <Image
               source={{ uri: entry.homeTeam.logoUrl }}
@@ -80,6 +84,8 @@ export function PotmHistoryRow({ entry }: Props) {
               router.push(`/team/${entry.awayTeam.id}` as any);
             }}
             hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.viewTeam', { name: entry.awayTeam.name })}
           >
             <Image
               source={{ uri: entry.awayTeam.logoUrl }}

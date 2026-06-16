@@ -66,7 +66,12 @@ export default function TeamsScreen() {
           textAlign={isRTL ? 'right' : 'left'}
         />
         {query.length > 0 && (
-          <Pressable onPress={() => setQuery('')} hitSlop={8}>
+          <Pressable
+            onPress={() => setQuery('')}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.clearSearch')}
+          >
             <Ionicons name="close-circle" size={16} color={colors.textMuted} />
           </Pressable>
         )}

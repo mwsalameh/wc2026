@@ -69,7 +69,13 @@ export default function MatchDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={[styles.header, { flexDirection: rowDir }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={12}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.goBack')}
+        >
           <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.white} />
         </Pressable>
         <HomeButton />
@@ -83,7 +89,12 @@ export default function MatchDetailScreen() {
         <View style={styles.notFound}>
           <Ionicons name="football-outline" size={48} color={colors.textMuted} />
           <Text style={styles.notFoundText}>{t('errors.loadFailed')}</Text>
-          <Pressable onPress={() => router.back()} style={styles.backLink}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backLink}
+            accessibilityRole="button"
+            accessibilityLabel={t('errors.retry')}
+          >
             <Text style={styles.backLinkText}>{t('errors.retry')}</Text>
           </Pressable>
         </View>

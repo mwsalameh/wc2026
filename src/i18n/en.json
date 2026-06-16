@@ -7,7 +7,8 @@
     "statistics": "Stats"
   },
   "home": {
-    "title": "WC 2026",
+    "title": "WC26",
+    "titleSub": "Match Center",
     "matchesToday": "Matches Today",
     "matchesTomorrow": "Tomorrow's Matches",
     "matchesOn": "Matches · {{date}}",
@@ -198,6 +199,16 @@
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions",
     "contact": "Contact Us"
+  },
+  "a11y": {
+    "goBack": "Go back",
+    "home": "Home",
+    "info": "Information",
+    "openCalendar": "Open calendar",
+    "clearFilter": "Clear filter",
+    "clearSearch": "Clear search",
+    "switchLanguage": "Switch language",
+    "viewTeam": "View {{name}}"
   },
   "language": "العربية"
 }

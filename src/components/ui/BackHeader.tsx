@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, spacing } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
 import { HomeButton } from './ScreenHeader';
@@ -10,10 +11,17 @@ interface BackHeaderProps {
 }
 
 export function BackHeader({ title }: BackHeaderProps) {
+  const { t } = useTranslation();
   const { isRTL, rowDir } = useRTL();
   return (
     <View style={[styles.container, { flexDirection: rowDir }]}>
-      <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={12}
+        style={styles.backBtn}
+        accessibilityRole="button"
+        accessibilityLabel={t('a11y.goBack')}
+      >
         <Ionicons
           name={isRTL ? 'arrow-forward' : 'arrow-back'}
           size={22}

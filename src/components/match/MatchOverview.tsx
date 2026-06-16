@@ -337,14 +337,23 @@ function EventsSection({ match, isRTL, showAr }: { match: Match; isRTL: boolean;
   const firstHalf  = [...visible.filter(e => e.minute <= 45)].sort(sortDesc);
   const secondHalf = [...visible.filter(e => e.minute > 45)].sort(sortDesc);
 
-  // match.firstHalfAddedTime is captured once at HT and persisted permanently
-  // (see firstHalfStoppageStore), so it survives the HT→2H transition and
-  // future app sessions without needing any in-component memory.
-  const htMin = match.firstHalfAddedTime
-    ? `45+${match.firstHalfAddedTime}'`
-    : halfEndMinute(events.filter(e => e.minute <= 45), 45);
+  // The API only exposes first-half added time while status is exactly 'HT'
+  // — once the second half kicks off that value is gone for good (reused for
+  // second-half added time), so once play has resumed the HT divider just
+  // shows "Half Time" and the score, with no minute marker.
+  const htMin = status === 'HT'
+    ? halfEndMinute(events.filter(e => e.minute <= 45), 45)
+    : '';
   const ftBase = status === 'AET' || status === 'PEN' ? 120 : 90;
-  const ftMin = halfEndMinute(events.filter(e => e.minute > 45 && e.minute <= ftBase), ftBase);
+  // match.extra (raw fixture.status.extra) holds the second half's added time
+  // and — unlike first-half added time — the API keeps this value populated
+  // forever once the match reaches FT, so it's a reliable permanent source.
+  // Event-derived detection is only a fallback for when the API never
+  // recorded a value (extra: null) or for AET/PEN, where extra's semantics
+  // during extra-time periods aren't established.
+  const ftMin = status === 'FT' && match.extra
+    ? `90+${match.extra}'`
+    : halfEndMinute(events.filter(e => e.minute > 45 && e.minute <= ftBase), ftBase);
 
   const htScore = hasHT ? `${score.homeHT} – ${score.awayHT}` : '';
   const ftScore = `${score.home ?? 0} – ${score.away ?? 0}`;

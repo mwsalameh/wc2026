@@ -42,17 +42,6 @@ const NUM_TO_LETTER: Record<string, string> = {
 export function mapStandings(rawGroups: any[]): Record<string, Standing[]> {
   const result: Record<string, Standing[]> = {};
 
-  if (__DEV__) {
-    console.log('[Standings] raw group count:', rawGroups.length);
-    if (rawGroups[0]?.[0]) {
-      console.log('[Standings] first entry sample:', JSON.stringify({
-        group: rawGroups[0][0].group,
-        team: rawGroups[0][0].team?.name,
-        rank: rawGroups[0][0].rank,
-      }));
-    }
-  }
-
   for (const group of rawGroups) {
     const groupName: string = group[0]?.group ?? '';
 

@@ -1,6 +1,5 @@
 import type { Match, MatchStatus, TournamentRound, Score, Venue, MatchEvent } from '@/types/match';
 import type { TeamRef } from '@/types/team';
-import { useFirstHalfStoppageStore } from '@/store/firstHalfStoppageStore';
 
 const NUM_TO_LETTER: Record<string, string> = {
   '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E', '6': 'F',
@@ -76,23 +75,6 @@ function mapEvent(raw: any, homeTeamId: number): MatchEvent {
   };
 }
 
-function resolveFirstHalfAddedTime(raw: any, fixtureId: number): number | null {
-  // fixture.status.extra only means "first-half added time" for the single
-  // instant the match is in HT — once 2H kicks off the same field gets reused
-  // for the second half's added time, and the fixture/periods timestamps in
-  // this API are flat placeholders that never reflect real stoppage time. So
-  // HT is the one moment this value can be read, and it must be persisted
-  // forever at that moment because it can never be recovered afterwards.
-  const statusShort: string = raw.fixture?.status?.short ?? '';
-  const extra: number | null = raw.fixture?.status?.extra ?? null;
-  const store = useFirstHalfStoppageStore.getState();
-  if (statusShort === 'HT' && extra != null && extra > 0) {
-    store.record(fixtureId, extra);
-    return extra;
-  }
-  return store.get(fixtureId);
-}
-
 export function mapFixture(raw: any): Match {
   const homeTeamId = raw.teams?.home?.id ?? 0;
   const rawReferee: string | null = raw.fixture?.referee ?? null;
@@ -117,7 +99,6 @@ export function mapFixture(raw: any): Match {
     groupId: extractGroupId(raw.league?.round ?? ''),
     round: ROUND_MAP[raw.league?.round] ?? 'Group Stage',
     referee,
-    firstHalfAddedTime: resolveFirstHalfAddedTime(raw, raw.fixture.id),
     events: Array.isArray(raw.events)
       ? raw.events.map((e: any) => mapEvent(e, homeTeamId))
       : [],

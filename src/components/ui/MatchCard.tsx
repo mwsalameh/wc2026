@@ -61,7 +61,11 @@ export function MatchCard({ match }: MatchCardProps) {
       onPress={() => router.push(`/match/${match.id}`)}
     >
       <View style={styles.team}>
-        <Pressable onPress={() => goToTeam(left.id)}>
+        <Pressable
+          onPress={() => goToTeam(left.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.viewTeam', { name: left.name })}
+        >
           {left.logo ? (
             <Image source={{ uri: left.logo }} style={styles.crest} resizeMode="contain" />
           ) : <View style={styles.crest} />}
@@ -85,7 +89,11 @@ export function MatchCard({ match }: MatchCardProps) {
 
       <View style={[styles.team, styles.teamRight]}>
         <Text style={[styles.teamName, styles.teamNameRight]} numberOfLines={1}>{right.name}</Text>
-        <Pressable onPress={() => goToTeam(right.id)}>
+        <Pressable
+          onPress={() => goToTeam(right.id)}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.viewTeam', { name: right.name })}
+        >
           {right.logo ? (
             <Image source={{ uri: right.logo }} style={styles.crest} resizeMode="contain" />
           ) : <View style={styles.crest} />}
