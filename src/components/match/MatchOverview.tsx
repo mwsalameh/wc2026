@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
-import { formatKickoffFull, getTimezoneAbbr } from '@/utils/dateTime';
+import { formatKickoffFull } from '@/utils/dateTime';
 import { useLanguageStore } from '@/store/languageStore';
 import { useRTL } from '@/hooks/useRTL';
 import { getVenueNameAr, getCityNameAr, getVenueCountry } from '@/constants/venueNamesAr';
@@ -13,11 +14,24 @@ import type { Match, MatchEvent } from '@/types/match';
 
 // ─── Info row ─────────────────────────────────────────────────────────────────
 
-function InfoRow({ label, value, isRTL }: { label: string; value: string; isRTL: boolean }) {
+function InfoRow({
+  label,
+  value,
+  isRTL,
+  icon,
+}: {
+  label: string;
+  value: string;
+  isRTL: boolean;
+  icon?: ReactNode;
+}) {
   return (
     <View style={styles.row}>
       <Text style={[styles.label, { textAlign: isRTL ? 'right' : 'left' }]}>{label}</Text>
-      <Text style={[styles.value, { textAlign: isRTL ? 'right' : 'left' }]}>{value}</Text>
+      <View style={[styles.valueRow, isRTL && { flexDirection: 'row-reverse' }]}>
+        {icon}
+        <Text style={[styles.value, { textAlign: isRTL ? 'right' : 'left' }]}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -55,7 +69,14 @@ function RefereeRow({
   // Flag uses the same separator as other items so it anchors correctly in RTL
   const value = [displayName, nationality, flag].filter(Boolean).join(sep);
 
-  return <InfoRow label={t('match.referee')} value={value} isRTL={isRTL} />;
+  return (
+    <InfoRow
+      label={t('match.referee')}
+      value={value}
+      isRTL={isRTL}
+      icon={<MaterialCommunityIcons name="whistle-outline" size={16} color={colors.gold} />}
+    />
+  );
 }
 
 // ─── Venue row ────────────────────────────────────────────────────────────────
@@ -72,7 +93,14 @@ function VenueRow({ venue, isRTL, isAr }: { venue: { name: string; city: string 
 
   const value = [venueName, cityName, countryName].filter(Boolean).join(sep) + (flag ? ` ${flag}` : '');
 
-  return <InfoRow label={t('match.venue')} value={value} isRTL={isRTL} />;
+  return (
+    <InfoRow
+      label={t('match.venue')}
+      value={value}
+      isRTL={isRTL}
+      icon={<MaterialCommunityIcons name="stadium-outline" size={16} color={colors.gold} />}
+    />
+  );
 }
 
 // ─── Timeline helpers ─────────────────────────────────────────────────────────
@@ -309,14 +337,12 @@ function EventsSection({ match, isRTL, showAr }: { match: Match; isRTL: boolean;
   const firstHalf  = [...visible.filter(e => e.minute <= 45)].sort(sortDesc);
   const secondHalf = [...visible.filter(e => e.minute > 45)].sort(sortDesc);
 
-  // Minutes for divider labels.
-  // For a live match at HT, match.extra = the announced first-half stoppage time.
-  const htMin =
-    status === 'HT' && match.extra != null && match.extra > 0
-      ? `45+${match.extra}'`
-      : match.firstHalfAddedTime
-      ? `45+${match.firstHalfAddedTime}'`
-      : halfEndMinute(events.filter(e => e.minute <= 45), 45);
+  // match.firstHalfAddedTime is captured once at HT and persisted permanently
+  // (see firstHalfStoppageStore), so it survives the HT→2H transition and
+  // future app sessions without needing any in-component memory.
+  const htMin = match.firstHalfAddedTime
+    ? `45+${match.firstHalfAddedTime}'`
+    : halfEndMinute(events.filter(e => e.minute <= 45), 45);
   const ftBase = status === 'AET' || status === 'PEN' ? 120 : 90;
   const ftMin = halfEndMinute(events.filter(e => e.minute > 45 && e.minute <= ftBase), ftBase);
 
@@ -366,13 +392,17 @@ export function MatchOverview({ match }: { match: Match }) {
   const { language } = useLanguageStore();
   const { isRTL } = useRTL();
   const isAr = language === 'ar';
-  const tzAbbr = getTimezoneAbbr();
-  const kickoffLabel = `${formatKickoffFull(match.kickoffUtc, language)} (${tzAbbr})`;
+  const kickoffLabel = formatKickoffFull(match.kickoffUtc, language);
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <InfoRow label={t('match.kickoff')} value={kickoffLabel} isRTL={isRTL} />
+        <InfoRow
+          label={t('match.kickoff')}
+          value={kickoffLabel}
+          isRTL={isRTL}
+          icon={<Ionicons name="calendar-outline" size={16} color={colors.gold} />}
+        />
         <VenueRow venue={match.venue} isRTL={isRTL} isAr={isAr} />
         {match.referee ? (
           <RefereeRow referee={match.referee} isRTL={isRTL} isAr={isAr} />
@@ -434,6 +464,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyRegular,
     fontSize: fontSize.body,
     lineHeight: 22,
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   sectionTitle: {
     color: colors.textMuted,

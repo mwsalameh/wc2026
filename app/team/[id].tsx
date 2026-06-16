@@ -5,7 +5,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
-import { useAllFixtures } from '@/hooks/useFixtures';
+import { useAllFixtures, useLiveFixtures } from '@/hooks/useFixtures';
+import type { Match } from '@/types/match';
 import { useTeamsList } from '@/hooks/useTeamsList';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useRTL } from '@/hooks/useRTL';
@@ -26,6 +27,7 @@ export default function TeamDetailScreen() {
 
   const { teams, isLoading: teamsLoading } = useTeamsList();
   const { data: allFixtures, isLoading: fixturesLoading } = useAllFixtures();
+  const { data: liveFixtures } = useLiveFixtures();
   const { data: squadPlayers = [], isLoading: squadLoading } = useSquad(teamId);
 
   const { isRTL, rowDir, textAlign } = useRTL();
@@ -40,12 +42,19 @@ export default function TeamDetailScreen() {
   // Prefer the verified override when available, otherwise use the API selection
   const displayCoach = coachOverride ?? coach;
 
+  const liveMap = useMemo(() => {
+    const map = new Map<number, Match>();
+    liveFixtures?.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [liveFixtures]);
+
   const teamMatches = useMemo(() => {
     if (!allFixtures) return [];
     return allFixtures
       .filter((m) => m.homeTeam.id === teamId || m.awayTeam.id === teamId)
-      .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
-  }, [allFixtures, teamId]);
+      .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime())
+      .map((m) => liveMap.get(m.id) ?? m);
+  }, [allFixtures, teamId, liveMap]);
 
   const isLoading = teamsLoading || fixturesLoading;
 
@@ -92,9 +101,14 @@ export default function TeamDetailScreen() {
                 resizeMode="contain"
               />
               <Text style={styles.teamName}>{teamName}</Text>
-              <Text style={styles.groupBadge}>
-                {t('groups.group', { id: teamItem.groupId })}
-              </Text>
+              <Pressable
+                onPress={() => router.push({ pathname: '/group/[id]', params: { id: teamItem.groupId } })}
+                style={({ pressed }) => pressed && { opacity: 0.7 }}
+              >
+                <Text style={styles.groupBadge}>
+                  {t('groups.group', { id: teamItem.groupId })}
+                </Text>
+              </Pressable>
             </View>
 
             {/* Tab bar */}

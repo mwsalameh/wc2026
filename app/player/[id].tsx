@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
@@ -223,12 +223,15 @@ export default function PlayerScreen() {
             <Text style={[styles.displayName, { textAlign: 'center' }]}>{displayName}</Text>
 
             {effectiveWcStats?.teamName ? (
-              <View style={[styles.teamRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <Pressable
+                style={({ pressed }) => [styles.teamRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push({ pathname: '/team/[id]', params: { id: effectiveWcStats.teamId } })}
+              >
                 {effectiveWcStats.teamLogo ? (
                   <Image source={{ uri: effectiveWcStats.teamLogo }} style={styles.teamLogo} resizeMode="contain" />
                 ) : null}
                 <Text style={styles.teamName}>{teamName || effectiveWcStats.teamName}</Text>
-              </View>
+              </Pressable>
             ) : null}
 
             {positionLabel ? (

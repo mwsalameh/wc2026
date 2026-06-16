@@ -40,9 +40,9 @@ export const useFixtureById = (id: number) => {
       // Empty events → cached from list endpoint (no events), force refetch
       // Guard against old persisted cache entries that predate the events field
       if ((data.events?.length ?? 0) === 0) return 0;
-      // firstHalfAddedTime key absent → old cache entry before mapper update
-      if (!Object.prototype.hasOwnProperty.call(data, 'firstHalfAddedTime')) return 0;
-      // Finished matches: long stale time, no need to refresh frequently
+      // Finished matches with events loaded: long stale time. firstHalfAddedTime
+      // null here is a stable answer (no HT capture exists for this fixture),
+      // not a signal to keep refetching — see firstHalfStoppageStore.
       return STALE_TIMES.FIXTURES_ALL;
     },
     enabled: id > 0,

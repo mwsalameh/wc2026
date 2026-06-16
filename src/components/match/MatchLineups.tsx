@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -17,20 +17,31 @@ import type { Player, Lineup } from '@/types/lineup';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Position-letter fallback order, used when the API gives no grid data at all
+// (happens for some fixtures) — without this, every player falls into the
+// same row and overflows past the pitch's clipped bounds, looking blank.
+const POSITION_ROW_ORDER: Record<string, number> = { G: 0, D: 1, M: 2, F: 3 };
+
 function parseFormationRows(players: Player[]): Player[][] {
+  const hasGrid = players.some((p) => p.grid);
+
   const rowMap = new Map<number, Player[]>();
   for (const p of players) {
-    const rowNum = p.grid ? parseInt(p.grid.split(':')[0], 10) : 0;
+    const rowNum = hasGrid
+      ? p.grid ? parseInt(p.grid.split(':')[0], 10) : 0
+      : POSITION_ROW_ORDER[p.position] ?? 4;
     if (!rowMap.has(rowNum)) rowMap.set(rowNum, []);
     rowMap.get(rowNum)!.push(p);
   }
-  rowMap.forEach((row) =>
-    row.sort((a, b) => {
-      const ca = a.grid ? parseInt(a.grid.split(':')[1], 10) : 0;
-      const cb = b.grid ? parseInt(b.grid.split(':')[1], 10) : 0;
-      return ca - cb;
-    })
-  );
+  if (hasGrid) {
+    rowMap.forEach((row) =>
+      row.sort((a, b) => {
+        const ca = a.grid ? parseInt(a.grid.split(':')[1], 10) : 0;
+        const cb = b.grid ? parseInt(b.grid.split(':')[1], 10) : 0;
+        return ca - cb;
+      })
+    );
+  }
   return Array.from(rowMap.entries())
     .sort(([a], [b]) => a - b)
     .map(([, ps]) => ps);
@@ -132,6 +143,23 @@ function buildTopRaterIds(home: Lineup, away: Lineup, ratingMap: Map<number, num
 }
 
 
+// ─── Goal / assist icons ────────────────────────────────────────────────────
+
+function GoalAssistIcons({ goalCount, assistCount }: { goalCount: number; assistCount: number }) {
+  // One icon per goal/assist, all grouped side by side at the same edge of
+  // the circle — e.g. a brace shows two ⚽ next to each other.
+  const icons = [...Array(goalCount).fill('⚽'), ...Array(assistCount).fill('👟')];
+  if (icons.length === 0) return null;
+
+  return (
+    <View style={styles.pitchIconsCombo}>
+      {icons.map((icon, i) => (
+        <Text key={i} style={styles.pitchIconText}>{icon}</Text>
+      ))}
+    </View>
+  );
+}
+
 // ─── Goalpost ─────────────────────────────────────────────────────────────────
 
 function GoalPost({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: number }) {
@@ -151,11 +179,38 @@ function GoalPost({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: num
   );
 }
 
+// ─── Penalty area ───────────────────────────────────────────────────────────
+
+function PenaltyBox({ side, pitchWidth }: { side: 'home' | 'away'; pitchWidth: number }) {
+  const boxW = Math.round(pitchWidth * 0.62);
+  const boxH = 72;
+  const left = (pitchWidth - boxW) / 2;
+  const color = 'rgba(255,255,255,0.3)';
+  const isHome = side === 'home';
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left,
+        width: boxW,
+        height: boxH,
+        bottom: isHome ? 0 : undefined,
+        top: isHome ? undefined : 0,
+        borderColor: color,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderTopWidth: isHome ? 1 : 0,
+        borderBottomWidth: isHome ? 0 : 1,
+      }}
+    />
+  );
+}
+
 // ─── Pitch player dot ─────────────────────────────────────────────────────────
 
 function PitchDot({
   player,
-  home,
   isRTL,
   card,
   rating,
@@ -166,7 +221,6 @@ function PitchDot({
   topRaterIds,
 }: {
   player: Player;
-  home: boolean;
   isRTL: boolean;
   card?: CardType;
   rating?: number;
@@ -176,26 +230,28 @@ function PitchDot({
   captainSet: Set<number>;
   topRaterIds: Set<number>;
 }) {
-  const iconsStr = '⚽'.repeat(goalCount) + '👟'.repeat(assistCount);
   const isCaptain = player.captain === true || captainSet.has(player.id);
   const showInjury = !!player.injured;
+  const isBestPlayer = topRaterIds.has(player.id);
   return (
     <Pressable
       style={({ pressed }) => [styles.pitchDot, pressed && { opacity: 0.7 }]}
       onPress={() => router.push({ pathname: '/player/[id]', params: { id: player.id, name: player.name } })}
     >
       <View style={styles.pitchDotInner}>
-        <View style={[styles.pitchCircle, home ? styles.circleHome : styles.circleAway]}>
+        <View style={[styles.pitchCircle, isBestPlayer ? styles.circleBest : styles.circleDefault]}>
           <PlayerAvatar uri={player.photo} size={38} backgroundColor="transparent" />
         </View>
 
-        {/* Captain circle + jersey number — top-left */}
+        {/* Captain marker — fully outside the circle, top-left */}
+        {isCaptain && (
+          <View style={styles.captainCircle}>
+            <Text style={styles.captainCircleText}>C</Text>
+          </View>
+        )}
+
+        {/* Jersey number — top-left */}
         <View style={styles.jerseyBadge}>
-          {isCaptain && (
-            <View style={styles.captainCircle}>
-              <Text style={styles.captainCircleText}>C</Text>
-            </View>
-          )}
           <Text style={styles.jerseyText}>{player.number}</Text>
         </View>
 
@@ -204,10 +260,8 @@ function PitchDot({
           <View style={[styles.cardBadge, card === 'yellow' ? styles.cardYellow : styles.cardRed]} />
         )}
 
-        {/* Goal / assist icons — top-right, pushed outside the circle */}
-        {iconsStr.length > 0 && (
-          <Text style={styles.pitchIconsBadge}>{iconsStr}</Text>
-        )}
+        {/* Goal / assist icons — single icon top-right, multiple arranged in a ring */}
+        <GoalAssistIcons goalCount={goalCount} assistCount={assistCount} />
 
         {/* Injury badge — bottom-right */}
         {showInjury && (
@@ -216,7 +270,7 @@ function PitchDot({
           </View>
         )}
 
-        {/* Rating badge — bottom-center, only after FT */}
+        {/* Rating badge — outside the circle, bottom-center, only after FT */}
         {rating !== undefined && rating > 0 && (
           <View style={styles.ratingBadge}>
             <Text style={[styles.ratingText, { color: ratingColor(rating) }]}>{rating.toFixed(1)}</Text>
@@ -260,28 +314,52 @@ function FormationHalf({
 }) {
   const rows = parseFormationRows(lineup.startXI);
   const displayRows = home ? [...rows].reverse() : rows;
+  const n = displayRows.length;
+  // Row 0 of parseFormationRows is always the goalkeeper line. After the
+  // optional reverse for the home half, the keeper sits at index 0 (away) or
+  // n - 1 (home) — i.e. always at the end nearest that team's own goal line.
+  // Only the gap right next to the keeper is kept tight (so they hug the
+  // goal line); every other gap between outfield lines (defense/midfield/
+  // attack) gets equal, larger spacing — even spread, no line pushed to an
+  // extreme.
+  const gkGapIndex = home ? n - 2 : 0;
 
+  // The attack row sits at the end of displayRows nearest the halfway
+  // divider — index 0 for the home half (reversed) and index n - 1 for the
+  // away half. A buffer spacer goes on whichever side that is, so forwards
+  // never sit flush against the centre line.
   return (
     <View style={styles.formationHalf}>
+      {home && <View style={{ flex: 1 }} />}
       {displayRows.map((rowPlayers, i) => (
-        <View key={i} style={styles.formationRow}>
-          {rowPlayers.map((p) => (
-            <PitchDot
-              key={p.id}
-              player={p}
-              home={home}
-              isRTL={isRTL}
-              card={cardMap.get(p.id)}
-              rating={ratingMap.get(p.id)}
-              subbedOff={subbedOffIds.has(p.id)}
-              goalCount={goalMap.get(p.id) ?? 0}
-              assistCount={assistMap.get(p.id) ?? 0}
-              captainSet={captainSet}
-              topRaterIds={topRaterIds}
-            />
-          ))}
-        </View>
+        // Row and its trailing spacer must be direct children of the flex:1
+        // column (siblings, via Fragment) — nesting them in their own
+        // auto-sized wrapper starves the spacer's flex weight of any space
+        // to grow into, collapsing every gap and stranding the keeper row
+        // away from the goal line.
+        <Fragment key={i}>
+          <View style={styles.formationRow}>
+            {rowPlayers.map((p) => (
+              <PitchDot
+                key={p.id}
+                player={p}
+                isRTL={isRTL}
+                card={cardMap.get(p.id)}
+                rating={ratingMap.get(p.id)}
+                subbedOff={subbedOffIds.has(p.id)}
+                goalCount={goalMap.get(p.id) ?? 0}
+                assistCount={assistMap.get(p.id) ?? 0}
+                captainSet={captainSet}
+                topRaterIds={topRaterIds}
+              />
+            ))}
+          </View>
+          {i < n - 1 && (
+            <View style={{ flex: i === gkGapIndex ? 1 : 3 }} />
+          )}
+        </Fragment>
       ))}
+      {!home && <View style={{ flex: 1 }} />}
     </View>
   );
 }
@@ -325,16 +403,26 @@ function PitchView({
         <View style={styles.centreLine} />
         <View style={styles.centreCircle} />
       </View>
+      <PenaltyBox side="away" pitchWidth={width} />
+      <PenaltyBox side="home" pitchWidth={width} />
       <GoalPost side="away" pitchWidth={width} />
       <GoalPost side="home" pitchWidth={width} />
 
-      {/* Team name labels — away top-left, home bottom-right */}
-      <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelTopLeft]} numberOfLines={1}>
-        {awayTeamName}
-      </Text>
-      <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelBottomRight]} numberOfLines={1}>
-        {homeTeamName}
-      </Text>
+      {/* Team name + formation labels — away top-left, home bottom-right */}
+      <View style={[styles.pitchTeamLabelWrap, styles.pitchTeamLabelTopLeft]}>
+        <Text style={styles.pitchTeamLabel} numberOfLines={1}>
+          {awayTeamName}
+        </Text>
+        {away.formation ? <Text style={styles.pitchFormationLabel}>{away.formation}</Text> : null}
+      </View>
+      <View style={[styles.pitchTeamLabelWrap, styles.pitchTeamLabelBottomRight]}>
+        <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelRight]} numberOfLines={1}>
+          {homeTeamName}
+        </Text>
+        {home.formation ? (
+          <Text style={[styles.pitchFormationLabel, styles.pitchTeamLabelRight]}>{home.formation}</Text>
+        ) : null}
+      </View>
 
       <View style={styles.pitchInner}>
         <FormationHalf
@@ -546,14 +634,11 @@ export function MatchLineups({ match }: { match: Match }) {
   const home = lineups.home;
   const away = lineups.away;
   const pitchWidth = screenWidth - spacing.lg * 2;
-  const pitchHeight = Math.round(pitchWidth * 1.55);
+  const pitchHeight = Math.round(pitchWidth * 1.8);
 
   return (
     <View style={styles.container}>
       <View style={[styles.pitchWrapper, { width: pitchWidth }]}>
-        {away.formation ? (
-          <Text style={styles.formationLabelText}>{away.formation}</Text>
-        ) : null}
         <PitchView
           home={home}
           away={away}
@@ -570,9 +655,6 @@ export function MatchLineups({ match }: { match: Match }) {
           goalMap={goalMap}
           assistMap={assistMap}
         />
-        {home.formation ? (
-          <Text style={styles.formationLabelText}>{home.formation}</Text>
-        ) : null}
       </View>
 
       {/* Substitutes — title centered above both columns */}
@@ -631,25 +713,24 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   centreLine: {
     position: 'absolute',
     height: 1,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   pitchInner: {
     flex: 1,
     flexDirection: 'column',
     alignItems: 'stretch',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   formationHalf: {
     flex: 1,
     flexDirection: 'column',
-    justifyContent: 'space-around',
   },
   formationRow: {
     flexDirection: 'row',
@@ -657,19 +738,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
 
-  // ── Team name labels on pitch ──
-  pitchTeamLabel: {
+  // ── Team name + formation labels on pitch ──
+  pitchTeamLabelWrap: {
     position: 'absolute',
-    color: 'rgba(255,255,255,0.95)',
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 12,
-    letterSpacing: 0.2,
-    maxWidth: 120,
     zIndex: 1,
+    maxWidth: 120,
     backgroundColor: 'rgba(0,0,0,0.38)',
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 3,
+  },
+  pitchTeamLabel: {
+    color: 'rgba(255,255,255,0.95)',
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  pitchFormationLabel: {
+    color: 'rgba(255,255,255,0.65)',
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    marginTop: 1,
+  },
+  pitchTeamLabelRight: {
+    textAlign: 'right',
   },
   pitchTeamLabelTopLeft: {
     top: 12,
@@ -678,7 +771,6 @@ const styles = StyleSheet.create({
   pitchTeamLabelBottomRight: {
     bottom: 12,
     right: 8,
-    textAlign: 'right',
   },
 
   // ── Pitch player dot ──
@@ -694,8 +786,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  circleHome: { borderColor: 'rgba(255,255,255,0.75)' },
-  circleAway: { borderColor: colors.gold },
+  circleDefault: { borderColor: 'rgba(255,255,255,0.75)' },
+  circleBest: { borderColor: colors.gold, borderWidth: 2 },
   pitchName: {
     color: 'rgba(255,255,255,0.9)',
     fontFamily: fontFamily.bodyMedium,
@@ -708,13 +800,14 @@ const styles = StyleSheet.create({
   jerseyBadge: {
     position: 'absolute',
     top: -3,
-    left: -3,
+    left: -6,
     flexDirection: 'row',
     backgroundColor: 'rgba(0,0,0,0.80)',
     borderRadius: 3,
     paddingHorizontal: 2,
     minWidth: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.22)',
   },
@@ -723,15 +816,20 @@ const styles = StyleSheet.create({
     fontSize: 8,
     lineHeight: 12,
     fontFamily: fontFamily.bodySemiBold,
+    textAlign: 'center',
   },
+  // Captain marker is a separate badge fully outside the photo (to the left of
+  // the jersey number) so it never overlaps the player's face.
   captainCircle: {
+    position: 'absolute',
+    top: -3,
+    left: -19,
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 2,
   },
   captainCircleText: {
     color: '#000',
@@ -762,11 +860,23 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.3)',
   },
 
-  // ── Goal / assist emoji icons (top-right of circle) ──
-  pitchIconsBadge: {
+  // ── Goal / assist icons: all grouped together at one edge of the circle ──
+  pitchIconsCombo: {
     position: 'absolute',
     top: -4,
-    right: -4,
+    // Anchored by `left`, not `right` — pins the first icon at the photo's
+    // corner and lets the group grow rightward as icons are added. Anchoring
+    // by `right` instead would pin the *last* icon there and grow leftward,
+    // pushing each new icon to the left of the previous one.
+    left: 26,
+    flexDirection: 'row',
+    // Force true left-to-right order regardless of app locale — under RTL,
+    // 'row' otherwise mirrors child order.
+    direction: 'ltr',
+    alignItems: 'center',
+    gap: 1,
+  },
+  pitchIconText: {
     fontSize: 10,
     lineHeight: 12,
     textShadowColor: 'rgba(0,0,0,0.85)',
@@ -794,17 +904,17 @@ const styles = StyleSheet.create({
   cardYellow: { backgroundColor: '#F4C842' },
   cardRed: { backgroundColor: '#E53935' },
 
-  // ── Rating badge (bottom-center of circle, after FT only) ──
+  // ── Rating badge (back near the circle's bottom edge, nudged right of center) ──
   ratingBadge: {
     position: 'absolute',
     bottom: 1,
     left: '50%',
-    transform: [{ translateX: -12 }],
-    width: 24,
+    transform: [{ translateX: -2 }],
+    width: 18,
     backgroundColor: 'rgba(0,0,0,0.80)',
-    borderRadius: 4,
+    borderRadius: 3,
     alignItems: 'center',
-    paddingVertical: 1,
+    paddingVertical: 0.5,
   },
   ratingText: {
     fontFamily: fontFamily.bodySemiBold,
@@ -812,19 +922,10 @@ const styles = StyleSheet.create({
     lineHeight: 10,
   },
 
-  // ── Formation labels (outside pitch) ──
   pitchWrapper: {
     alignSelf: 'center',
     alignItems: 'center',
     marginTop: spacing.md,
-    gap: 4,
-  },
-  formationLabelText: {
-    color: colors.textMuted,
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textAlign: 'center',
   },
 
   // ── Placeholder ──

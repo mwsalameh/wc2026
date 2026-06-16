@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true\" -o /tmp/bundle2.js -w \"HTTP %{http_code} size=%{size_download}\\\\n\" --max-time 120)",
+      "Bash(git rm *)",
+      "Bash(netsh advfirewall *)",
+      "Bash(node -e ' *)"
+    ]
+  },
   "enabledPlugins": {
     "expo@claude-plugins-official": true
   }

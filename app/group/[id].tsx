@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     letterSpacing: 1,
   },
-  content: { padding: spacing.lg, gap: spacing.sm },
+  content: { padding: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.xxl, gap: spacing.sm },
   sectionLabel: {
     color: colors.textMuted,
     fontFamily: fontFamily.bodyMedium,
