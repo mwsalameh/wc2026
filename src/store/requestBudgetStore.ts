@@ -12,7 +12,7 @@ interface RequestBudgetStore {
 }
 
 const today = () => new Date().toISOString().split('T')[0];
-const DAILY_LIMIT = __DEV__ ? 500 : 100;
+const DAILY_LIMIT = __DEV__ ? 500 : 7500;
 
 export const useRequestBudgetStore = create<RequestBudgetStore>()(
   persist(
