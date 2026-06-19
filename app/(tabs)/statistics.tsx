@@ -24,10 +24,11 @@ export default function StatisticsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures }),
-      queryClient.invalidateQueries({ queryKey: ['fixturePlayers'] }),
-    ]);
+    // Step 1: refetch the fixture list first so completedFixtures is up to date.
+    // Step 2: then invalidate all fixturePlayers — this now covers any matches
+    // that became completed during the stale window, not just previously known ones.
+    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures });
+    await queryClient.invalidateQueries({ queryKey: ['fixturePlayers'] });
     setRefreshing(false);
   }, [queryClient]);
 
