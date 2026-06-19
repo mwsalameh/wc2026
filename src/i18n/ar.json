@@ -8,7 +8,7 @@
   },
   "home": {
     "title": "WC26",
-    "titleSub": "Match Center",
+    "titleSub": "مركز المباريات",
     "matchesToday": "مباريات اليوم",
     "matchesTomorrow": "مباريات الغد",
     "matchesOn": "مباريات · {{date}}",
