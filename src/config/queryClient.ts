@@ -33,7 +33,7 @@ export const STALE_TIMES = {
   LINEUPS: 45 * 1000,
   PLAYER_STATS: 12 * 60 * 60 * 1000,
   SQUAD: 24 * 60 * 60 * 1000,
-  FIXTURE_PLAYERS: 6 * 60 * 60 * 1000,
+  FIXTURE_PLAYERS: 2 * 60 * 60 * 1000,
   PLAYER_DETAIL: 24 * 60 * 60 * 1000,
 } as const;
 

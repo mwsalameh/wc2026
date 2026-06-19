@@ -12,7 +12,16 @@ export const useAllFixtures = () =>
       const data = query.state.data as Match[] | undefined;
       // Old persisted cache entries predate the events field — force a refresh
       if (Array.isArray(data) && data.length > 0 && !Object.prototype.hasOwnProperty.call(data[0], 'events')) return 0;
-      return STALE_TIMES.FIXTURES_ALL;
+      // If any non-finished match had kickoff within the last 3 hours, use short
+      // staleTime so newly-completed matches appear in stats within 30 minutes
+      const now = Date.now();
+      const hasRecentActivity = (data ?? []).some((m) => {
+        if (['FT', 'AET', 'PEN'].includes(m.status)) return false;
+        const kickoff = new Date(m.kickoffUtc).getTime();
+        const elapsed = now - kickoff;
+        return elapsed > 0 && elapsed < 3 * 60 * 60 * 1000; // within 3h of kickoff
+      });
+      return hasRecentActivity ? 30 * 60 * 1000 : STALE_TIMES.FIXTURES_ALL;
     },
   });
 

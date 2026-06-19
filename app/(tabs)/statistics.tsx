@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { colors, fontFamily, fontSize, spacing, radius } from '@/constants/theme';
 import { useRTL } from '@/hooks/useRTL';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -9,6 +10,7 @@ import { PlayersTab } from '@/components/statistics/PlayersTab';
 import { PotmTab } from '@/components/statistics/PotmTab';
 import { TeamsTab } from '@/components/statistics/TeamsTab';
 import { DisciplineTab } from '@/components/statistics/DisciplineTab';
+import { QUERY_KEYS } from '@/config/queryClient';
 
 const TABS = ['players', 'potm', 'teams', 'discipline'] as const;
 type StatTab = typeof TABS[number];
@@ -16,7 +18,18 @@ type StatTab = typeof TABS[number];
 export default function StatisticsScreen() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<StatTab>('players');
+  const [refreshing, setRefreshing] = useState(false);
   const { rowDir, textAlign } = useRTL();
+  const queryClient = useQueryClient();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures }),
+      queryClient.invalidateQueries({ queryKey: ['fixturePlayers'] }),
+    ]);
+    setRefreshing(false);
+  }, [queryClient]);
 
   const tabLabels: Record<StatTab, string> = {
     players: t('stats.players'),
@@ -46,7 +59,18 @@ export default function StatisticsScreen() {
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.gold}
+            colors={[colors.gold]}
+          />
+        }
+      >
         {activeTab === 'players' && <PlayersTab />}
         {activeTab === 'potm' && <PotmTab />}
         {activeTab === 'teams' && <TeamsTab />}
