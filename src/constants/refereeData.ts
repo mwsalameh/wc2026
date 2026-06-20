@@ -455,6 +455,12 @@ const REFEREE_DATA: Record<string, RefereeInfo> = {
     countryCode: 'CO',
   },
 
+  'Juan Gabriel Benitez': {
+    nameAr: 'خوان غابرييل بينيتيز',
+    nationality: 'Paraguayan',
+    countryCode: 'PY',
+  },
+
   // ── North & Central America ──────────────────────────────────────────────────
   'Cesar Ramos': {
     nameAr: 'سيزار راموس',
