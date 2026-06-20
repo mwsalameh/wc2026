@@ -2,7 +2,6 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, fontFamily, fontSize, radius, spacing } from '@/constants/theme';
-import { isFavoriteTeam } from '@/constants/favoriteTeam';
 import { formatMatchTime, formatMatchDate } from '@/utils/dateTime';
 import { useTeamName } from '@/hooks/useTeamName';
 import { useLanguageStore } from '@/store/languageStore';
@@ -42,7 +41,6 @@ export function MatchCard({ match }: MatchCardProps) {
   const { isRTL } = useRTL();
   const goToTeam = useTeamNavigation();
   const hasScore = match.score.home !== null && match.score.away !== null;
-  const isJordanMatch = isFavoriteTeam(match.homeTeam.name) || isFavoriteTeam(match.awayTeam.name);
   const homeName = useTeamName(match.homeTeam.name);
   const awayName = useTeamName(match.awayTeam.name);
   const dateLabels = { today: t('common.today'), tomorrow: t('common.tomorrow'), yesterday: t('common.yesterday'), language };
@@ -57,7 +55,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, isJordanMatch && styles.cardFavorite, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={() => router.push(`/match/${match.id}`)}
     >
       <View style={styles.team}>
@@ -116,10 +114,6 @@ const styles = StyleSheet.create({
     minHeight: 64,
   },
   pressed: { opacity: 0.75 },
-  cardFavorite: {
-    borderColor: colors.gold,
-    borderWidth: 1.5,
-  },
   crest: { width: 28, height: 28, flexShrink: 0 },
   team: {
     flex: 1,

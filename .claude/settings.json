@@ -14,7 +14,15 @@
       "Bash(git check-ignore *)",
       "Bash(git commit -m ' *)",
       "Bash(git remote *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx eas-cli *)",
+      "WebFetch(domain:storage.googleapis.com)",
+      "Bash(ls \"C:\\\\Mohanad Data\\\\World-Cup\\\\SC\" 2>&1)",
+      "Read(//c/Mohanad Data/World-Cup/SC/**)",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(node -e \"require\\('canvas'\\); console.log\\('canvas ok'\\)\")",
+      "Bash(eas build *)",
+      "PowerShell(npm install -g eas-cli 2>&1)"
     ]
   },
   "enabledPlugins": {
