@@ -301,6 +301,18 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Justin Leweling': 'جاستن ليفيلينغ',
   'Aleksandar Pavlovic': 'ألكسندر بافلوفيتش',
   'Nico Schlotterbeck': 'نيكو شلوتيربيك',
+  'Jonathan Tah': 'يوناثان تاه',
+  'Alexander Nubel': 'ألكسندر نوبل',
+  'Alexander Nübel': 'ألكسندر نوبل',
+  'Oliver Baumann': 'أوليفر باومان',
+  'Waldemar Anton': 'فالدمار أنتون',
+  'Assan Ouedraogo': 'آسان أويدراغو',
+  'Assan Ouédraogo': 'آسان أويدراغو',
+  'Angelo Stiller': 'أنجيلو شتيلر',
+  'Maximilian Beier': 'ماكسيميليان باير',
+  'Nick Woltemade': 'نيك فولتيمادي',
+  'Felix Nmecha': 'فيليكس نميشا',
+  'Nathaniel Brown': 'ناثانيئيل براون',
 
   // ── Netherlands ───────────────────────────────────────────────────────────────
   'Virgil van Dijk': 'فيرخيل فان دايك',
@@ -436,6 +448,8 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Lee Jae-sung': 'لي جاي سونغ',
   'Cho Gue-sung': 'تشو غوي سونغ',
   'Oh Hyeon-gyu': 'أو هيون غيو',
+  'Lee Gi-hyuk': 'لي غي-هيوك',
+  'Gi-Hyuk Lee': 'لي غي-هيوك',
 
   // ── United States ────────────────────────────────────────────────────────────
   'Christian Pulisic': 'كريستيان بوليسيتش',
@@ -458,6 +472,8 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Gio Reyna': 'خيو رينا',
   'Antonee Robinson': 'أنتوني روبنسون',
   'Walker Zimmermann': 'ووكر زيمرمان',
+  'Brian Gutierrez': 'برايان غوتيريز',
+  'Brian Gutiérrez': 'برايان غوتيريز',
 
   // ── Canada ───────────────────────────────────────────────────────────────────
   'Alphonso Davies': 'ألفونسو دايفيس',
@@ -766,6 +782,31 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Simon Adingra': 'سيمون أدينغرا',
   'Odilon Kossounou': 'أوديلون كوسونو',
   'Oumar Diakite': 'عمر دياكيتي',
+  'Alban Lafont': 'ألبان لافون',
+  'Ousmane Diomande': 'عثمان ديومانده',
+  'Ghislain Konan': 'غيسلان كونان',
+  'Emmanuel Agbadou': 'إيمانويل أغبادو',
+  'Wilfried Singo': 'ويلفريد سينغو',
+  'Yan Diomande': 'يان ديومانده',
+  'Guéla Doué': 'غيلا دوي',
+  'Guela Doue': 'غيلا دوي',
+  'Evan Ndicka': 'إيفان نديكا',
+  'Bazoumana Toure': 'بازومانا توري',
+  'Bazoumana Touré': 'بازومانا توري',
+  'Jean Michael Seri': 'جان ميكائيل سيري',
+  'Jean Michaël Seri': 'جان ميكائيل سيري',
+  'Parfait Guiagon': 'بارفي غياغون',
+  'Seko Fofana': 'سيكو فوفانا',
+  'Yahia Fofana': 'يحيى فوفانا',
+  'S. Fofana': 'سيكو فوفانا',
+  'Elye Wahi': 'إيلي واهي',
+  'Evann Guessand': 'إيفان غيسان',
+  'Ange-Yoan Bonny': 'أنج-يوان بوني',
+  'Christopher Operi': 'كريستوفر أوبيري',
+  'Christ Inao Oulai': 'كريست إناو أولاي',
+  'Christ Inao Oulaï': 'كريست إناو أولاي',
+  'Amad Diallo': 'أماد ديالو',
+  'A. Diallo': 'أماد ديالو',
 
   // ── Tunisia ──────────────────────────────────────────────────────────────────
   'Wahbi Khazri': 'وهبي الخزري',
@@ -1124,6 +1165,19 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
 
   // ── Paraguay ─────────────────────────────────────────────────────────────────
   'Julio Enciso': 'خوليو إنسيسو',
+  'Miguel Almiron': 'ميغيل ألميرون',
+  'Miguel Almirón': 'ميغيل ألميرون',
+
+  // ── Bosnia ───────────────────────────────────────────────────────────────────
+  'Tarik Muharemovic': 'طارق محارموفيتش',
+  'Tarik Muharemović': 'طارق محارموفيتش',
+
+  // ── South Africa ─────────────────────────────────────────────────────────────
+  'Teboho Mokoena': 'تيبوهو موكوينا',
+  'Nkosinathi Sibisi': 'نكوسيناثي سيبيسي',
+  'Thalente Mbatha': 'تاليني مباثا',
+  'Siphephelo Sithole': 'سيفيفيلو سيثولي',
+  'Themba Zwane': 'ثيمبا زوانه',
 
   // ── Morocco ───────────────────────────────────────────────────────────────────
   'M. Ouahbi': 'محمد وهبي',
