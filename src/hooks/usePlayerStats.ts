@@ -2,21 +2,21 @@ import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { fetchFixturePlayers } from '@/api/fixtures';
 import { useAllFixtures } from '@/hooks/useFixtures';
+import { useFirestoreStats } from '@/hooks/useFirestoreStats';
 import { QUERY_KEYS, STALE_TIMES } from '@/config/queryClient';
 import type { Match } from '@/types/match';
 import type { PlayerStat, TeamStat } from '@/types/playerStats';
 
-// ─── fixture/player aggregation ─────────────────────────────────────────────
+// ─── Raw fixture-player queries ───────────────────────────────────────────────
+// enabled=false disables all N queries at once when Firestore stats are active,
+// preventing the per-minute rate-limit burst on the Statistics tab.
 
-// Returns raw useQueries results for every completed match.
-// All four stat hooks call this, but TanStack Query deduplicates the actual
-// network requests — /fixtures/players is fetched once per match and shared.
-function useFixturePlayerResults() {
+function useFixturePlayerResults(enabled = true) {
   const { data: fixtures } = useAllFixtures();
 
   const completedFixtures = useMemo(
     () => (fixtures ?? []).filter((m) => ['FT', 'AET', 'PEN'].includes(m.status)),
-    [fixtures]
+    [fixtures],
   );
 
   const results = useQueries({
@@ -24,15 +24,14 @@ function useFixturePlayerResults() {
       queryKey: QUERY_KEYS.fixturePlayers(f.id),
       queryFn: () => fetchFixturePlayers(f.id),
       staleTime: STALE_TIMES.FIXTURE_PLAYERS,
+      enabled,
     })),
   });
 
   return { results, completedFixtures };
 }
 
-// Aggregate per-match player statistics into cross-tournament totals.
-// Every player who appeared in any completed match is included — no API cutoff.
-function buildPlayerStats(results: any[], completedFixtures: Match[]): PlayerStat[] {
+function buildPlayerStats(results: ReturnType<typeof useFixturePlayerResults>['results'], completedFixtures: Match[]): PlayerStat[] {
   if (completedFixtures.length === 0) return [];
 
   const map = new Map<number, PlayerStat>();
@@ -42,15 +41,11 @@ function buildPlayerStats(results: any[], completedFixtures: Match[]): PlayerSta
     if (!r.data) continue;
 
     const fixture = completedFixtures[i];
-    // AET/PEN matches run to 120 minutes; group stage and regular KO to 90
     const matchDuration = ['AET', 'PEN'].includes(fixture?.status) ? 120 : 90;
-    // Players who were substituted off — the API correctly reports their sub minute,
-    // so we don't override it. For non-subbed starters, the API sometimes
-    // underreports (e.g. 84 instead of 90) and we normalise to matchDuration.
     const substOffIds = new Set(
       (fixture?.events ?? [])
         .filter((e) => e.type === 'subst')
-        .map((e) => e.playerId)
+        .map((e) => e.playerId),
     );
 
     for (const teamData of r.data) {
@@ -61,7 +56,6 @@ function buildPlayerStats(results: any[], completedFixtures: Match[]): PlayerSta
         const playerId: number = p.player.id;
         const rawMinutes: number = s.games?.minutes ?? 0;
         const isStarter: boolean = s.games?.substitute === false;
-
         const minutes =
           isStarter && rawMinutes > 0 && rawMinutes < matchDuration && !substOffIds.has(playerId)
             ? matchDuration
@@ -106,86 +100,91 @@ function buildPlayerStats(results: any[], completedFixtures: Match[]): PlayerSta
   return Array.from(map.values());
 }
 
-// Shared hook — all four public stat hooks delegate here.
-// Returns undefined while the initial load is in progress (shows skeleton),
-// then the full aggregated list once any data arrives.
-function useAllPlayerStats(): { data: PlayerStat[] | undefined; isLoading: boolean } {
-  const { results, completedFixtures } = useFixturePlayerResults();
+// ─── Shared hook ──────────────────────────────────────────────────────────────
+// In dev builds: uses Firestore pre-aggregated stats when available, disabling
+// all N fixture-player API queries. Falls back to API if Firestore doc doesn't
+// exist (Cloud Function not deployed yet).
+// In production builds: Firestore path is a compile-time no-op; API path runs
+// exactly as before, so the current App Store build is completely unaffected.
 
-  const data = useMemo(
-    () => buildPlayerStats(results, completedFixtures),
-    [results, completedFixtures]
+function useAllPlayerStats(): { data: PlayerStat[] | undefined; isLoading: boolean } {
+  const firestore = useFirestoreStats();
+
+  // Disable the N fixture-player queries whenever Firestore data is (or will
+  // be) the active source. This is the key API-reduction: 0 requests instead
+  // of N when the Cloud Function has already computed everything.
+  const useFirestoreSource = __DEV__ && !firestore.isLoading && firestore.players !== undefined;
+  const apiEnabled = !useFirestoreSource && !(__DEV__ && firestore.isLoading);
+
+  const { results, completedFixtures } = useFixturePlayerResults(apiEnabled);
+
+  const apiData = useMemo(
+    () => (apiEnabled ? buildPlayerStats(results, completedFixtures) : []),
+    [apiEnabled, results, completedFixtures],
   );
 
-  const isLoading = completedFixtures.length > 0 && results.some((r) => r.isLoading);
+  // ── Return Firestore data (dev, Cloud Function deployed) ──
+  if (__DEV__ && firestore.isLoading) return { data: undefined, isLoading: true };
+  if (useFirestoreSource) return { data: firestore.players, isLoading: false };
 
-  // Stay undefined while loading with no data yet → components show skeleton.
-  // Once we have partial data or loading finishes, hand back the array.
-  const resolvedData = !isLoading || data.length > 0 ? data : undefined;
-
-  return { data: resolvedData, isLoading };
+  // ── Return API data (production, or dev with no Cloud Function) ──
+  const isApiLoading = completedFixtures.length > 0 && results.some((r) => r.isLoading);
+  const resolvedData = !isApiLoading || apiData.length > 0 ? apiData : undefined;
+  return { data: resolvedData, isLoading: isApiLoading };
 }
 
-// ─── public stat hooks ───────────────────────────────────────────────────────
-// All return the same complete player list; components sort/filter as needed.
+// ─── Public stat hooks ────────────────────────────────────────────────────────
+// All four return the same complete player list; components sort/filter as needed.
 
 export const useTopScorers = () => useAllPlayerStats();
 export const useTopAssists = () => useAllPlayerStats();
 export const useTopYellowCards = () => useAllPlayerStats();
 export const useTopRedCards = () => useAllPlayerStats();
 
-// ─── team stats (already fixture-derived, unchanged) ─────────────────────────
+// ─── Team stats ───────────────────────────────────────────────────────────────
+// Team stats are derived purely from the fixtures list (no extra API calls), so
+// the only saving from the Firestore path here is consistency: all stats come
+// from the same aggregated document rather than being re-computed per device.
 
 export function useTeamStats(): { teams: TeamStat[]; isLoading: boolean } {
-  const { data: fixtures, isLoading } = useAllFixtures();
+  const firestore = useFirestoreStats();
+  const { data: fixtures, isLoading: fixturesLoading } = useAllFixtures();
 
-  const teams = useMemo(() => {
+  const apiTeams = useMemo(() => {
     if (!fixtures) return [];
-
     const teamMap = new Map<number, TeamStat>();
-
     const completed = fixtures.filter(
-      (m) => ['FT', 'AET', 'PEN'].includes(m.status) && m.score.home !== null && m.score.away !== null
+      (m) => ['FT', 'AET', 'PEN'].includes(m.status) && m.score.home !== null && m.score.away !== null,
     );
-
     for (const match of completed) {
       const hg = match.score.home!;
       const ag = match.score.away!;
 
-      if (!teamMap.has(match.homeTeam.id)) {
-        teamMap.set(match.homeTeam.id, {
-          teamId: match.homeTeam.id,
-          teamName: match.homeTeam.name,
-          teamLogo: match.homeTeam.logoUrl,
-          goalsFor: 0, goalsAgainst: 0, goalDifference: 0, cleanSheets: 0, played: 0,
-        });
-      }
-      const home = teamMap.get(match.homeTeam.id)!;
-      home.goalsFor += hg;
-      home.goalsAgainst += ag;
-      home.played += 1;
+      const ensureTeam = (id: number, name: string, logo: string) => {
+        if (!teamMap.has(id)) {
+          teamMap.set(id, {
+            teamId: id, teamName: name, teamLogo: logo,
+            goalsFor: 0, goalsAgainst: 0, goalDifference: 0, cleanSheets: 0, played: 0,
+          });
+        }
+        return teamMap.get(id)!;
+      };
+
+      const home = ensureTeam(match.homeTeam.id, match.homeTeam.name, match.homeTeam.logoUrl);
+      home.goalsFor += hg; home.goalsAgainst += ag; home.played += 1;
       if (ag === 0) home.cleanSheets += 1;
 
-      if (!teamMap.has(match.awayTeam.id)) {
-        teamMap.set(match.awayTeam.id, {
-          teamId: match.awayTeam.id,
-          teamName: match.awayTeam.name,
-          teamLogo: match.awayTeam.logoUrl,
-          goalsFor: 0, goalsAgainst: 0, goalDifference: 0, cleanSheets: 0, played: 0,
-        });
-      }
-      const away = teamMap.get(match.awayTeam.id)!;
-      away.goalsFor += ag;
-      away.goalsAgainst += hg;
-      away.played += 1;
+      const away = ensureTeam(match.awayTeam.id, match.awayTeam.name, match.awayTeam.logoUrl);
+      away.goalsFor += ag; away.goalsAgainst += hg; away.played += 1;
       if (hg === 0) away.cleanSheets += 1;
     }
-
     return Array.from(teamMap.values()).map((t) => ({
-      ...t,
-      goalDifference: t.goalsFor - t.goalsAgainst,
+      ...t, goalDifference: t.goalsFor - t.goalsAgainst,
     }));
   }, [fixtures]);
 
-  return { teams, isLoading };
+  if (__DEV__ && firestore.isLoading) return { teams: [], isLoading: true };
+  if (__DEV__ && firestore.teamStats !== undefined) return { teams: firestore.teamStats, isLoading: false };
+
+  return { teams: apiTeams, isLoading: fixturesLoading };
 }

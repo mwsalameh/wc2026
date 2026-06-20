@@ -25,11 +25,20 @@ export default function StatisticsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
+    if (__DEV__) {
+      // In dev, Firestore stats update via real-time onSnapshot — no API calls needed.
+      // Show a brief cosmetic spinner so pull-to-refresh feels responsive.
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
+      setRefreshing(false);
+      return;
+    }
+
+    // Production: throttled API refresh — 2 s between requests to stay under
+    // the per-minute rate limit. Targets recent matches and empty cached entries.
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures });
     setRefreshing(false);
 
-    // Throttled background refresh: 2 s between requests to stay under the per-minute rate limit.
-    // Targets recent matches (last 24 h) and any completed match with empty/missing cached player data.
     const fixtures = queryClient.getQueryData<Match[]>(QUERY_KEYS.fixtures) ?? [];
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const toRefresh = fixtures.filter((m) => {

@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { fetchFixturePlayers } from '@/api/fixtures';
 import { useAllFixtures } from '@/hooks/useFixtures';
+import { useFirestoreStats } from '@/hooks/useFirestoreStats';
 import { QUERY_KEYS, STALE_TIMES } from '@/config/queryClient';
 import { useOfficialPotmMap, getOfficialPlayerId } from '@/hooks/useFirebasePotm';
 import type { BestPlayer, PotmEntry, PotmHistoryEntry } from '@/types/bestPlayer';
@@ -52,10 +53,10 @@ function extractBestPlayer(
     }
   }
 
-
   return fallback;
 }
 
+// Per-match hook — always fetches its own data; not affected by Firestore source
 export function useBestPlayer(fixtureId: number, isCompleted: boolean) {
   const potmMap = useOfficialPotmMap();
   const officialPlayerId = getOfficialPlayerId(potmMap, fixtureId);
@@ -74,11 +75,16 @@ export function useBestPlayer(fixtureId: number, isCompleted: boolean) {
   });
 }
 
+// Aggregated POTM stats for the Statistics tab
+// In dev: uses Firestore pre-aggregated data when available, suppressing the
+//   N fixture-player queries. Falls back to API if Cloud Function not deployed.
+// In production: Firestore path is a compile-time no-op; API path runs as before.
 export function usePotmStats(): {
   awardLeaders: PotmEntry[];
   history: PotmHistoryEntry[];
   isLoading: boolean;
 } {
+  const firestore = useFirestoreStats();
   const { data: fixtures } = useAllFixtures();
   const potmMap = useOfficialPotmMap();
 
@@ -92,18 +98,22 @@ export function usePotmStats(): {
     [completedFixtures]
   );
 
+  // Disable all N queries when Firestore data is available or still loading
+  const useFirestoreSource = __DEV__ && !firestore.isLoading && firestore.potmHistory !== undefined;
+  const apiEnabled = !useFirestoreSource && !(__DEV__ && firestore.isLoading);
+
   const results = useQueries({
     queries: completedIds.map((id) => ({
       queryKey: QUERY_KEYS.fixturePlayers(id),
       queryFn: () => fetchFixturePlayers(id),
       staleTime: STALE_TIMES.FIXTURE_PLAYERS,
+      enabled: apiEnabled,
     })),
   });
 
-  const { awardLeaders, history } = useMemo<{
-    awardLeaders: PotmEntry[];
-    history: PotmHistoryEntry[];
-  }>(() => {
+  const apiPotm = useMemo<{ awardLeaders: PotmEntry[]; history: PotmHistoryEntry[] }>(() => {
+    if (!apiEnabled) return { awardLeaders: [], history: [] };
+
     const leaderMap = new Map<number, PotmEntry>();
     const historyList: PotmHistoryEntry[] = [];
 
@@ -133,17 +143,27 @@ export function usePotmStats(): {
       }
     });
 
-    // Newest match first
     historyList.sort(
       (a, b) => new Date(b.kickoffUtc).getTime() - new Date(a.kickoffUtc).getTime()
     );
 
-    const awardLeaders = Array.from(leaderMap.values()).sort((a, b) => b.awards - a.awards);
+    return {
+      awardLeaders: Array.from(leaderMap.values()).sort((a, b) => b.awards - a.awards),
+      history: historyList,
+    };
+  }, [apiEnabled, results, completedFixtures, potmMap]);
 
-    return { awardLeaders, history: historyList };
-  }, [results, completedFixtures, potmMap]);
+  // ── Return Firestore data (dev, Cloud Function deployed) ──
+  if (__DEV__ && firestore.isLoading) return { awardLeaders: [], history: [], isLoading: true };
+  if (useFirestoreSource) {
+    return {
+      awardLeaders: firestore.potmLeaders ?? [],
+      history: firestore.potmHistory ?? [],
+      isLoading: false,
+    };
+  }
 
-  const isLoading = completedIds.length > 0 && results.some((r) => r.isLoading);
-
-  return { awardLeaders, history, isLoading };
+  // ── Return API data (production, or dev with no Cloud Function) ──
+  const isApiLoading = completedIds.length > 0 && results.some((r) => r.isLoading);
+  return { ...apiPotm, isLoading: isApiLoading };
 }
