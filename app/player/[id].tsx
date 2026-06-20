@@ -50,21 +50,6 @@ function InfoRow({ label, value, isRTL }: { label: string; value: string; isRTL:
   );
 }
 
-function ClubInfoRow({ label, name, logo, isRTL }: { label: string; name: string; logo: string; isRTL: boolean }) {
-  return (
-    <View style={[styles.infoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-      <Text style={[styles.infoLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{label}</Text>
-      <View style={[styles.clubValueRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-        {logo ? (
-          <Image source={{ uri: logo }} style={styles.clubValueLogo} resizeMode="contain" />
-        ) : null}
-        <Text style={[styles.infoValue, { textAlign: isRTL ? 'left' : 'right', flex: 0 }]} numberOfLines={1}>
-          {name}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 function StatBox({ value, label }: { value: string | number; label: string }) {
   return (
@@ -250,7 +235,7 @@ export default function PlayerScreen() {
               </View>
 
               {clubDisplayName && (
-                <ClubInfoRow label={t('player.club')} name={clubDisplayName} logo={club!.logo ?? ''} isRTL={isRTL} />
+                <InfoRow label={t('player.club')} value={clubDisplayName} isRTL={isRTL} />
               )}
               {(effectiveWcStats?.number ?? null) !== null && (
                 <InfoRow label={t('player.number')} value={`#${effectiveWcStats!.number}`} isRTL={isRTL} />
@@ -413,18 +398,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     flex: 1,
   },
-  clubValueRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.xs,
-  },
-  clubValueLogo: {
-    width: 18,
-    height: 18,
-  },
-
   // ── Stats grid ──
   statsGrid: {
     flexDirection: 'row',

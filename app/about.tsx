@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, Image, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
@@ -26,7 +26,9 @@ const CONTENT = {
     host: 'United States · Canada · Mexico',
     dataTitle: 'Data Source',
     data: 'Match data provided by API-Football (api-football.com).',
-    disclaimer: 'This app is not affiliated with, sponsored by, or endorsed by FIFA or any national football federation.',
+    disclaimerP1: 'This application is an unofficial football statistics and information app. It is not affiliated with, endorsed by, sponsored by, or associated with any football club, league, federation, or competition.',
+    disclaimerP2: 'All club names, player names, logos, trademarks, and other intellectual property rights belong to their respective owners.',
+    disclaimerP3: 'Football data is provided by API-Football and is displayed for informational purposes only.',
     version: `Version ${appVersion}`,
   },
   ar: {
@@ -45,7 +47,9 @@ const CONTENT = {
     host: 'الولايات المتحدة · كندا · المكسيك',
     dataTitle: 'مصدر البيانات',
     data: 'بيانات المباريات مقدَّمة من API-Football (api-football.com).',
-    disclaimer: 'هذا التطبيق غير تابع لـ FIFA أو أي اتحاد كرة قدم وطني، ولا يحظى برعايتهم أو تأييدهم.',
+    disclaimerP1: 'هذا التطبيق عبارة عن تطبيق غير رسمي للإحصائيات والمعلومات الكروية. لا ينتمي ولا يرتبط بأي نادٍ أو دوري أو اتحاد أو منافسة كروية، ولا يحظى بتأييدها أو رعايتها.',
+    disclaimerP2: 'جميع أسماء الأندية وأسماء اللاعبين والشعارات والعلامات التجارية وحقوق الملكية الفكرية الأخرى مملوكة لأصحابها المعنيين.',
+    disclaimerP3: 'بيانات كرة القدم مقدَّمة من API-Football وتُعرض لأغراض إعلامية فقط.',
     version: `الإصدار ${appVersion}`,
   },
 } as const;
@@ -95,7 +99,11 @@ export default function AboutScreen() {
         </View>
 
         {/* Disclaimer */}
-        <Text style={[styles.disclaimer, { textAlign }]}>{c.disclaimer}</Text>
+        <View style={styles.disclaimerBox}>
+          <Text style={[styles.disclaimer, { textAlign }]}>{c.disclaimerP1}</Text>
+          <Text style={[styles.disclaimer, { textAlign }]}>{c.disclaimerP2}</Text>
+          <Text style={[styles.disclaimer, { textAlign }]}>{c.disclaimerP3}</Text>
+        </View>
 
         {/* Version */}
         <Text style={styles.version}>{c.version}</Text>
@@ -195,6 +203,9 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
+  disclaimerBox: {
+    gap: spacing.md,
+  },
   disclaimer: {
     color: colors.textMuted,
     fontFamily: fontFamily.bodyRegular,
