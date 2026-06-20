@@ -297,6 +297,10 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Chris Fuhrich': 'كريس فوريش',
   'Deniz Undav': 'دينيز أوندف',
   'Emre Can': 'إمري جان',
+  'Nadiem Amiri': 'ناديم أميري',
+  'Justin Leweling': 'جاستن ليفيلينغ',
+  'Aleksandar Pavlovic': 'ألكسندر بافلوفيتش',
+  'Nico Schlotterbeck': 'نيكو شلوتيربيك',
 
   // ── Netherlands ───────────────────────────────────────────────────────────────
   'Virgil van Dijk': 'فيرخيل فان دايك',
@@ -344,6 +348,7 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Wout Faes': 'واوت فايس',
   'Eden Hazard': 'إيدن هازار',
   'Thibaut Courtois': 'تيبو كورتوا',
+  'Johan Manzambi': 'يوهان مانزامبي',
 
   // ── Portugal ─────────────────────────────────────────────────────────────────
   'Cristiano Ronaldo': 'كريستيانو رونالدو',
@@ -1114,6 +1119,12 @@ export const PLAYER_NAMES_AR: Record<string, string> = {
   'Mohamed Amine Ben Hamida': 'محمد أمين بن حميدة',
   'Abdelmouhib Chamakh': 'عبد المهيب الشماخ',
 
+  // ── Sweden ───────────────────────────────────────────────────────────────────
+  'Alexander Isak': 'ألكسندر إيساك',
+
+  // ── Paraguay ─────────────────────────────────────────────────────────────────
+  'Julio Enciso': 'خوليو إنسيسو',
+
   // ── Morocco ───────────────────────────────────────────────────────────────────
   'M. Ouahbi': 'محمد وهبي',
   // Direct keys for conflict/reversed-name cases
@@ -1235,6 +1246,9 @@ function transliterateToArabic(englishName: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tracks names already warned this session so each missing entry logs only once,
+// even when a language switch triggers many re-renders.
+const _missWarnedNames = new Set<string>();
 
 export function getPlayerNameAr(englishName: string): string {
   if (!englishName) return englishName;
@@ -1291,7 +1305,8 @@ export function getPlayerNameAr(englishName: string): string {
   }
 
   // Tier 5: phonetic transliteration — covers any player not in the dictionary
-  if (__DEV__) {
+  if (__DEV__ && !_missWarnedNames.has(englishName)) {
+    _missWarnedNames.add(englishName);
     console.warn('[playerNamesAr] MISS — falling to transliteration:', JSON.stringify(englishName));
   }
   return transliterateToArabic(englishName);
