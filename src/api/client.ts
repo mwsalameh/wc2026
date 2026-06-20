@@ -28,9 +28,7 @@ apiClient.interceptors.response.use(
       if (__DEV__) {
         console.warn('[API] api-sports error:', JSON.stringify(errors));
       }
-      // Rate limit responses arrive as HTTP 200 with response:[].
-      // Throw so TanStack Query marks the query as failed and retries with
-      // backoff, instead of caching the empty array as valid player data.
+      // api-sports signals rate limits as HTTP 200 with response:[]; throw to prevent caching empty data.
       if (errors.rateLimit) {
         return Promise.reject(new Error('RATE_LIMIT_EXCEEDED'));
       }

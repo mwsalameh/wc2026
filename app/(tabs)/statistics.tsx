@@ -25,18 +25,11 @@ export default function StatisticsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-
-    // Step 1: Refresh fixture list (1 request). Spinner stays visible here.
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures });
     setRefreshing(false);
 
-    // Step 2: Throttled background refresh of player stats.
-    // Covers two cases:
-    //   (a) Matches completed in the last 24h — stats may still be updating.
-    //   (b) Any completed match whose cached player data is empty or missing —
-    //       caused by a rate-limit response (HTTP 200, response:[]) being
-    //       cached as valid data before the API client was fixed.
-    // Requests are spaced 2 seconds apart to stay under the rate limit.
+    // Throttled background refresh: 2 s between requests to stay under the per-minute rate limit.
+    // Targets recent matches (last 24 h) and any completed match with empty/missing cached player data.
     const fixtures = queryClient.getQueryData<Match[]>(QUERY_KEYS.fixtures) ?? [];
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const toRefresh = fixtures.filter((m) => {
