@@ -23,13 +23,22 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    if (__DEV__ && response.data?.errors && Object.keys(response.data.errors).length > 0) {
-      console.warn('[API] api-sports error:', JSON.stringify(response.data.errors));
+    const errors = response.data?.errors;
+    if (errors && Object.keys(errors).length > 0) {
+      if (__DEV__) {
+        console.warn('[API] api-sports error:', JSON.stringify(errors));
+      }
+      // Rate limit responses arrive as HTTP 200 with response:[].
+      // Throw so TanStack Query marks the query as failed and retries with
+      // backoff, instead of caching the empty array as valid player data.
+      if (errors.rateLimit) {
+        return Promise.reject(new Error('RATE_LIMIT_EXCEEDED'));
+      }
     }
     return response;
   },
   (error) => {
-    if (error?.message !== 'BUDGET_LIMIT_REACHED') {
+    if (error?.message !== 'BUDGET_LIMIT_REACHED' && error?.message !== 'RATE_LIMIT_EXCEEDED') {
       if (__DEV__) {
         console.error('[API] request failed:', error?.config?.url, error?.response?.status, error?.message);
       }
