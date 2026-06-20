@@ -11,6 +11,7 @@ import { PotmTab } from '@/components/statistics/PotmTab';
 import { TeamsTab } from '@/components/statistics/TeamsTab';
 import { DisciplineTab } from '@/components/statistics/DisciplineTab';
 import { QUERY_KEYS } from '@/config/queryClient';
+import type { Match } from '@/types/match';
 
 const TABS = ['players', 'potm', 'teams', 'discipline'] as const;
 type StatTab = typeof TABS[number];
@@ -24,12 +25,26 @@ export default function StatisticsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Only invalidate the fixture list (1 request). Newly completed matches
-    // discovered here have no existing cache so their fixturePlayers are fetched
-    // fresh automatically. Invalidating all fixturePlayers simultaneously would
-    // fire N requests at once and exceed the API per-minute rate limit.
+
+    // Step 1: Refresh fixture list (1 request). Spinner stays visible here.
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures });
     setRefreshing(false);
+
+    // Step 2: Throttled background refresh for player stats of recently
+    // completed matches. Only covers the last 24 hours — older match data
+    // is final and never changes. Requests are spaced 3 seconds apart to
+    // stay well under the API per-minute rate limit.
+    const fixtures = queryClient.getQueryData<Match[]>(QUERY_KEYS.fixtures) ?? [];
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const recent = fixtures.filter(
+      (m) =>
+        ['FT', 'AET', 'PEN'].includes(m.status) &&
+        new Date(m.kickoffUtc).getTime() > cutoff
+    );
+    for (const match of recent) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixturePlayers(match.id) });
+    }
   }, [queryClient]);
 
   const tabLabels: Record<StatTab, string> = {
