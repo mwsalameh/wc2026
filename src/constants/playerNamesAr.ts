@@ -1300,9 +1300,6 @@ function transliterateToArabic(englishName: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tracks names already warned this session so each missing entry logs only once,
-// even when a language switch triggers many re-renders.
-const _missWarnedNames = new Set<string>();
 
 export function getPlayerNameAr(englishName: string): string {
   if (!englishName) return englishName;
@@ -1359,9 +1356,5 @@ export function getPlayerNameAr(englishName: string): string {
   }
 
   // Tier 5: phonetic transliteration — covers any player not in the dictionary
-  if (__DEV__ && !_missWarnedNames.has(englishName)) {
-    _missWarnedNames.add(englishName);
-    console.warn('[playerNamesAr] MISS — falling to transliteration:', JSON.stringify(englishName));
-  }
   return transliterateToArabic(englishName);
 }
