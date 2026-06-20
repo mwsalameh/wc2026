@@ -24,11 +24,11 @@ export default function StatisticsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Step 1: refetch the fixture list first so completedFixtures is up to date.
-    // Step 2: then invalidate all fixturePlayers — this now covers any matches
-    // that became completed during the stale window, not just previously known ones.
+    // Only invalidate the fixture list (1 request). Newly completed matches
+    // discovered here have no existing cache so their fixturePlayers are fetched
+    // fresh automatically. Invalidating all fixturePlayers simultaneously would
+    // fire N requests at once and exceed the API per-minute rate limit.
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fixtures });
-    await queryClient.invalidateQueries({ queryKey: ['fixturePlayers'] });
     setRefreshing(false);
   }, [queryClient]);
 
