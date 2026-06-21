@@ -38,6 +38,7 @@ export const reportAppError = onCall<ReportErrorData>(
     region: 'us-central1',
     timeoutSeconds: 30,
     memory: '128MiB',
+    invoker: 'public',
   },
   async (request) => {
     const { entry, recentLog } = request.data;
