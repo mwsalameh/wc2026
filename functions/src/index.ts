@@ -3,6 +3,7 @@ import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import { createApiClient } from './apiClient';
 import { runAggregation } from './aggregateStats';
+export { reportAppError } from './reportError';
 
 admin.initializeApp();
 const db = admin.firestore();

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 import { initializeAuth, getAuth, inMemoryPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,6 +17,7 @@ const isFirstInit = getApps().length === 0;
 const app = isFirstInit ? initializeApp(firebaseConfig) : getApp();
 
 export const db = getFirestore(app);
+export const functions = getFunctions(app, 'us-central1');
 // inMemoryPersistence: admin stays signed in for the current app session only.
 // This is intentional — no session tokens are stored on-device.
 export const auth = isFirstInit
